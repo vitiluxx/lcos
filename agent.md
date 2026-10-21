@@ -23,6 +23,4 @@ NOTE IMPORTANTE (debut) : PHILOSOPHIE DE DÉVELOPPEMENT DU PROJET
 
 - Concernant les conventions de code, la logique métier de l'application doit etre majoritairement rédigée en français(noms de class, noms des fonctions, noms des variables, noms des fichiers). Néanmoins, pour prévenir tout conflit lié à l'encodage de caractères UTF-8, le recours aux accents est strictement interdit dans l'ensemble des nommages. Une exception est accordée aux termes techniques critiques et essentiels au fonctionnement du langage de programmation ou des frameworks ou des serveurs, tels que le mot comme index, login, render noms des bibliotheque etc, qui doivent obligatoirement conserver leur nomenclature d'origine en anglais.
 
-- Enfin, l'architecture du projet doit imposer une isolation modulaire stricte. La partie architecture logiciel est totalement autonome et l'intégralité des fichiers nécessaires à son fonctionnement doit demeurer confinée dans le répertoire ./projet/. Tous les éléments situés à la racine ./ sont quant à eux dédiés uniquement à la configuration globale des ressources utilisées et à la documentation, ceux-ci peuvent eventuellement intervenir ou permettre aux étapes comme la compilation ou de build de l'application.
-
 NOTE IMPORTANTE (fin).
