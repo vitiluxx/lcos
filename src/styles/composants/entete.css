@@ -1,0 +1,31 @@
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace_4);
+  padding: var(--espace_3) var(--espace_6);
+  background: var(--couleur_surface);
+  border-bottom: 1px solid var(--couleur_bordure);
+}
+
+.entete__identite {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espace_3);
+  min-width: 0;
+}
+
+.entete__sigle {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--couleur_accent);
+}
+
+.entete__sous_titre {
+  font-size: 13px;
+  color: var(--couleur_texte_faible);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

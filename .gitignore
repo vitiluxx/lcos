@@ -1,0 +1,32 @@
+# Rust / Cargo
+/src-tauri/target/
+**/*.rs.bk
+*.pdb
+
+# Tauri genere
+/src-tauri/gen/
+/src-tauri/WixTools/
+
+# Node (outillage local uniquement)
+node_modules/
+
+# Base de donnees locale et sauvegardes
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+/donnees_locales/
+
+# Environnement et secrets
+.env
+.env.*
+!.env.exemple
+
+# Editeurs
+.vscode/
+.idea/
+*.swp
+
+# Systeme
+Thumbs.db
+desktop.ini

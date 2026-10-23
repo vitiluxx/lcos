@@ -1,0 +1,32 @@
+.bouton {
+  padding: var(--espace_2) var(--espace_4);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.bouton:hover {
+  border-color: var(--couleur_accent);
+  color: var(--couleur_accent);
+}
+
+.bouton:focus-visible {
+  outline: 2px solid var(--couleur_accent);
+  outline-offset: 2px;
+}
+
+.bouton--actif {
+  background: var(--couleur_accent);
+  border-color: var(--couleur_accent);
+  color: var(--couleur_surface);
+}
+
+.bouton--actif:hover {
+  color: var(--couleur_surface);
+  opacity: 0.9;
+}

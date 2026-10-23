@@ -1,0 +1,64 @@
+.vue_peripheriques {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.vue_peripheriques__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espace_4);
+}
+
+.vue_peripheriques__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--espace_4);
+  margin-top: var(--espace_5);
+  flex-wrap: wrap;
+}
+
+.vue_peripheriques__aide {
+  flex: 1;
+  min-width: 260px;
+  font-size: 12px;
+  color: var(--couleur_texte_faible);
+}
+
+.carte--large {
+  grid-column: 1 / -1;
+}
+
+.carte__valeur--code {
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.zone_verdict {
+  margin-top: var(--espace_5);
+  padding: var(--espace_3) var(--espace_4);
+  border: 1px solid var(--couleur_bordure);
+  border-left-width: 4px;
+  border-radius: var(--rayon_1);
+  font-size: 13px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.zone_verdict--neutre {
+  border-left-color: var(--couleur_texte_faible);
+  color: var(--couleur_texte_faible);
+}
+
+.zone_verdict--succes {
+  border-left-color: var(--couleur_succes);
+  color: var(--couleur_succes);
+}
+
+.zone_verdict--alerte {
+  border-left-color: var(--couleur_alerte);
+  color: var(--couleur_alerte);
+}

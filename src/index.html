@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LCOS - Logiciel de caisse</title>
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/composants/entete.css" />
+    <link rel="stylesheet" href="styles/composants/onglets.css" />
+    <link rel="stylesheet" href="styles/composants/carte.css" />
+    <link rel="stylesheet" href="styles/composants/badge.css" />
+    <link rel="stylesheet" href="styles/composants/bouton.css" />
+    <link rel="stylesheet" href="styles/vues/diagnostic.css" />
+    <link rel="stylesheet" href="styles/vues/peripheriques.css" />
+  </head>
+  <body>
+    <header class="entete">
+      <div class="entete__identite">
+        <span class="entete__sigle">LCOS</span>
+        <span class="entete__sous_titre">Logiciel de caisse open source</span>
+      </div>
+      <div class="entete__version">
+        <span class="badge badge--neutre" id="etiquette_version">version --</span>
+      </div>
+    </header>
+
+    <nav class="onglets" aria-label="Navigation principale">
+      <button class="onglets__bouton onglets__bouton--actif" data-vue="diagnostic" type="button">
+        Etat du socle
+      </button>
+      <button class="onglets__bouton" data-vue="peripheriques" type="button">
+        Peripheriques
+      </button>
+    </nav>
+
+    <main class="contenu">
+      <section class="vue_diagnostic" data-section="diagnostic" aria-labelledby="titre_diagnostic">
+        <h1 class="vue_diagnostic__titre" id="titre_diagnostic">Etat du socle</h1>
+        <p class="vue_diagnostic__intro">
+          Verification de l'installation locale. Aucune connexion reseau n'est utilisee.
+        </p>
+
+        <div class="grille_cartes">
+          <article class="carte">
+            <h2 class="carte__titre">Base de donnees</h2>
+            <p class="carte__valeur" id="valeur_base">verification...</p>
+            <p class="carte__detail" id="detail_chemin_base">chemin indisponible</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Migrations appliquees</h2>
+            <p class="carte__valeur" id="valeur_migrations">--</p>
+            <p class="carte__detail">schema versionne et rejouable</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Parametres charges</h2>
+            <p class="carte__valeur" id="valeur_parametres">--</p>
+            <p class="carte__detail">devise, TVA, commerce, douchette</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Moteur de rendu</h2>
+            <p class="carte__valeur">WebView2 local</p>
+            <p class="carte__detail">CSS brut, zero ressource externe</p>
+          </article>
+        </div>
+
+        <h2 class="vue_diagnostic__titre_secondaire">Modules prevus</h2>
+        <ul class="liste_modules">
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Catalogue</span>
+            <span class="badge badge--attente">a venir</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Encaissement</span>
+            <span class="badge badge--attente">a venir</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Stock</span>
+            <span class="badge badge--attente">a venir</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Utilisateurs et sessions</span>
+            <span class="badge badge--attente">a venir</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Douchette code-barres</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+        </ul>
+
+        <p class="vue_diagnostic__erreur" id="zone_erreur" hidden></p>
+      </section>
+
+      <section class="vue_peripheriques" data-section="peripheriques" aria-labelledby="titre_peripheriques" hidden>
+        <div class="vue_peripheriques__entete">
+          <div>
+            <h1 class="vue_diagnostic__titre" id="titre_peripheriques">Douchette code-barres</h1>
+            <p class="vue_diagnostic__intro">
+              Lecteur USB en mode clavier (keyboard wedge). Aucun pilote requis.
+              Branche la douchette et scanne une etiquette : la detection est automatique.
+            </p>
+          </div>
+          <span class="badge badge--attente" id="badge_scanner">en attente</span>
+        </div>
+
+        <div class="grille_cartes">
+          <article class="carte carte--large">
+            <h2 class="carte__titre">Dernier code lu</h2>
+            <p class="carte__valeur carte__valeur--code" id="valeur_code">--</p>
+            <p class="carte__detail">
+              symbologie <span id="valeur_symbologie">--</span> &middot;
+              cle de controle <span id="valeur_controle">--</span> &middot;
+              suffixe <span id="valeur_suffixe">--</span>
+            </p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Caracteres</h2>
+            <p class="carte__valeur" id="valeur_caracteres">--</p>
+            <p class="carte__detail">minimum requis : <span id="valeur_longueur_requise">--</span></p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Cadence moyenne</h2>
+            <p class="carte__valeur" id="valeur_cadence">--</p>
+            <p class="carte__detail">seuil : <span id="valeur_cadence_requise">--</span></p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Cadence maximale</h2>
+            <p class="carte__valeur" id="valeur_cadence_max">--</p>
+            <p class="carte__detail">ecart le plus long entre deux touches</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Duree de lecture</h2>
+            <p class="carte__valeur" id="valeur_duree">--</p>
+            <p class="carte__detail">premiere a derniere touche</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Signature materielle</h2>
+            <p class="carte__valeur carte__valeur--code" id="valeur_signature">--</p>
+            <p class="carte__detail">detectee le <span id="valeur_derniere_detection">jamais</span></p>
+          </article>
+        </div>
+
+        <p class="zone_verdict zone_verdict--neutre" id="verdict_scan" hidden></p>
+
+        <div class="vue_peripheriques__actions">
+          <button class="bouton" id="bouton_calibration" type="button">Calibrer la douchette</button>
+          <p class="vue_peripheriques__aide">
+            Si la douchette n'est pas reconnue, lance la calibration : toute frappe est alors
+            acceptee et les mesures reelles du lecteur s'affichent.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="scripts/api/pont.js"></script>
+    <script src="scripts/peripheriques/scanner.js"></script>
+    <script src="scripts/vues/diagnostic.js"></script>
+    <script src="scripts/vues/peripheriques.js"></script>
+    <script src="scripts/application.js"></script>
+  </body>
+</html>

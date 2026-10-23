@@ -1,0 +1,34 @@
+.badge {
+  display: inline-block;
+  padding: 2px var(--espace_2);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--neutre {
+  background: var(--couleur_accent_faible);
+  border-color: transparent;
+  color: var(--couleur_accent);
+  font-family: var(--police_chiffre);
+}
+
+.badge--succes {
+  background: transparent;
+  border-color: var(--couleur_succes);
+  color: var(--couleur_succes);
+}
+
+.badge--attente {
+  background: transparent;
+  border-color: var(--couleur_attente);
+  color: var(--couleur_attente);
+}
+
+.badge--alerte {
+  background: transparent;
+  border-color: var(--couleur_alerte);
+  color: var(--couleur_alerte);
+}

@@ -1,0 +1,57 @@
+.vue_diagnostic {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.vue_diagnostic__titre {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.vue_diagnostic__titre_secondaire {
+  margin-top: var(--espace_6);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.vue_diagnostic__intro {
+  margin-top: var(--espace_1);
+  color: var(--couleur_texte_faible);
+}
+
+.liste_modules {
+  margin-top: var(--espace_3);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_2);
+  background: var(--couleur_surface);
+  overflow: hidden;
+}
+
+.liste_modules__element {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace_3);
+  padding: var(--espace_3) var(--espace_4);
+  border-bottom: 1px solid var(--couleur_bordure);
+}
+
+.liste_modules__element:last-child {
+  border-bottom: none;
+}
+
+.liste_modules__nom {
+  font-weight: 500;
+}
+
+.vue_diagnostic__erreur {
+  margin-top: var(--espace_5);
+  padding: var(--espace_3) var(--espace_4);
+  border: 1px solid var(--couleur_alerte);
+  border-left-width: 4px;
+  border-radius: var(--rayon_1);
+  color: var(--couleur_alerte);
+  font-size: 13px;
+  -webkit-user-select: text;
+  user-select: text;
+}

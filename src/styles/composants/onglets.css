@@ -1,0 +1,33 @@
+.onglets {
+  display: flex;
+  gap: var(--espace_1);
+  padding: 0 var(--espace_6);
+  background: var(--couleur_surface);
+  border-bottom: 1px solid var(--couleur_bordure);
+}
+
+.onglets__bouton {
+  padding: var(--espace_3) var(--espace_4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--couleur_texte_faible);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.onglets__bouton:hover {
+  color: var(--couleur_texte);
+}
+
+.onglets__bouton:focus-visible {
+  outline: 2px solid var(--couleur_accent);
+  outline-offset: -2px;
+}
+
+.onglets__bouton--actif {
+  border-bottom-color: var(--couleur_accent);
+  color: var(--couleur_accent);
+}
