@@ -4,95 +4,888 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LCOS - Logiciel de caisse</title>
+    <link rel="stylesheet" href="styles/polices.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/composants/entete.css" />
     <link rel="stylesheet" href="styles/composants/onglets.css" />
     <link rel="stylesheet" href="styles/composants/carte.css" />
     <link rel="stylesheet" href="styles/composants/badge.css" />
     <link rel="stylesheet" href="styles/composants/bouton.css" />
+    <link rel="stylesheet" href="styles/composants/champ.css" />
+    <link rel="stylesheet" href="styles/composants/tableau.css" />
+    <link rel="stylesheet" href="styles/composants/panneau.css" />
+    <link rel="stylesheet" href="styles/composants/notification.css" />
+    <link rel="stylesheet" href="styles/vues/caisse.css" />
+    <link rel="stylesheet" href="styles/vues/session.css" />
+    <link rel="stylesheet" href="styles/vues/parametrage.css" />
+    <link rel="stylesheet" href="styles/vues/rapports.css" />
     <link rel="stylesheet" href="styles/vues/diagnostic.css" />
     <link rel="stylesheet" href="styles/vues/peripheriques.css" />
+    <link rel="stylesheet" href="styles/impression.css" />
   </head>
   <body>
     <header class="entete">
       <div class="entete__identite">
         <span class="entete__sigle">LCOS</span>
-        <span class="entete__sous_titre">Logiciel de caisse open source</span>
+        <span class="entete__sous_titre" id="entete_commerce">Logiciel de caisse open source</span>
       </div>
       <div class="entete__version">
+        <span class="badge badge--neutre" id="etiquette_horloge">--/--/---- --:--</span>
+        <span class="badge badge--attente" id="etiquette_session">session fermee</span>
         <span class="badge badge--neutre" id="etiquette_version">version --</span>
       </div>
     </header>
 
     <nav class="onglets" aria-label="Navigation principale">
-      <button class="onglets__bouton onglets__bouton--actif" data-vue="diagnostic" type="button">
-        Etat du socle
+      <button class="onglets__bouton onglets__bouton--actif" data-vue="caisse" type="button">
+        Caisse
       </button>
-      <button class="onglets__bouton" data-vue="peripheriques" type="button">
-        Peripheriques
-      </button>
+      <button class="onglets__bouton" data-vue="session" type="button">Session</button>
+      <button class="onglets__bouton" data-vue="parametrage" type="button">Parametrage</button>
+      <button class="onglets__bouton" data-vue="rapports" type="button">Rapports</button>
+      <button class="onglets__bouton" data-vue="peripheriques" type="button">Peripheriques</button>
+      <button class="onglets__bouton" data-vue="diagnostic" type="button">Diagnostic</button>
     </nav>
 
     <main class="contenu">
-      <section class="vue_diagnostic" data-section="diagnostic" aria-labelledby="titre_diagnostic">
-        <h1 class="vue_diagnostic__titre" id="titre_diagnostic">Etat du socle</h1>
-        <p class="vue_diagnostic__intro">
-          Verification de l'installation locale. Aucune connexion reseau n'est utilisee.
-        </p>
-
-        <div class="grille_cartes">
-          <article class="carte">
-            <h2 class="carte__titre">Base de donnees</h2>
-            <p class="carte__valeur" id="valeur_base">verification...</p>
-            <p class="carte__detail" id="detail_chemin_base">chemin indisponible</p>
-          </article>
-
-          <article class="carte">
-            <h2 class="carte__titre">Migrations appliquees</h2>
-            <p class="carte__valeur" id="valeur_migrations">--</p>
-            <p class="carte__detail">schema versionne et rejouable</p>
-          </article>
-
-          <article class="carte">
-            <h2 class="carte__titre">Parametres charges</h2>
-            <p class="carte__valeur" id="valeur_parametres">--</p>
-            <p class="carte__detail">devise, TVA, commerce, douchette</p>
-          </article>
-
-          <article class="carte">
-            <h2 class="carte__titre">Moteur de rendu</h2>
-            <p class="carte__valeur">WebView2 local</p>
-            <p class="carte__detail">CSS brut, zero ressource externe</p>
-          </article>
+      <!-- ================= CAISSE ================= -->
+      <section data-section="caisse" aria-labelledby="titre_caisse">
+        <div class="panneau caisse__verrou" id="caisse_verrou" hidden>
+          <h1 class="panneau__titre">Aucune session de caisse ouverte</h1>
+          <p class="panneau__intro">
+            Un caissier doit ouvrir sa session avant de pouvoir encaisser.
+          </p>
+          <button class="bouton bouton--principal" id="caisse_aller_session" type="button">
+            Ouvrir une session
+          </button>
         </div>
 
-        <h2 class="vue_diagnostic__titre_secondaire">Modules prevus</h2>
-        <ul class="liste_modules">
-          <li class="liste_modules__element">
-            <span class="liste_modules__nom">Catalogue</span>
-            <span class="badge badge--attente">a venir</span>
-          </li>
-          <li class="liste_modules__element">
-            <span class="liste_modules__nom">Encaissement</span>
-            <span class="badge badge--attente">a venir</span>
-          </li>
-          <li class="liste_modules__element">
-            <span class="liste_modules__nom">Stock</span>
-            <span class="badge badge--attente">a venir</span>
-          </li>
-          <li class="liste_modules__element">
-            <span class="liste_modules__nom">Utilisateurs et sessions</span>
-            <span class="badge badge--attente">a venir</span>
-          </li>
-          <li class="liste_modules__element">
-            <span class="liste_modules__nom">Douchette code-barres</span>
-            <span class="badge badge--succes">operationnel</span>
-          </li>
-        </ul>
+        <div class="vue_caisse" id="caisse_corps" hidden>
+          <div class="caisse__colonne">
+            <div class="caisse__entete">
+              <h1 class="caisse__titre" id="titre_caisse">Encaissement</h1>
+              <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
+            </div>
 
-        <p class="vue_diagnostic__erreur" id="zone_erreur" hidden></p>
+            <div class="caisse__scan">
+              <span>Dernier code lu</span>
+              <span class="caisse__scan_code" id="caisse_dernier_code">en attente de scan</span>
+            </div>
+
+            <div class="cadre_tableau">
+              <table class="tableau">
+                <thead>
+                  <tr>
+                    <th>Article</th>
+                    <th class="tableau__chiffre">Prix</th>
+                    <th class="tableau__chiffre">Qte</th>
+                    <th class="tableau__chiffre">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="caisse_panier"></tbody>
+              </table>
+            </div>
+
+            <div class="caisse__recherche" data-saisie="clavier">
+              <input
+                class="champ__saisie"
+                id="caisse_recherche"
+                type="text"
+                placeholder="Chercher un article par nom ou code"
+                autocomplete="off"
+              />
+              <select class="champ__liste" id="caisse_filtre_rayon">
+                <option value="">Tous les rayons</option>
+              </select>
+            </div>
+
+            <div class="grille_produits" id="caisse_grille"></div>
+          </div>
+
+          <div class="caisse__colonne">
+            <div class="panneau paiement">
+              <div class="paiement__total">
+                <span class="paiement__total_libelle">Total a payer</span>
+                <span class="paiement__total_valeur" id="caisse_total">0,00</span>
+              </div>
+
+              <div class="champ">
+                <label class="champ__etiquette" for="caisse_montant">Somme recue du client</label>
+                <input
+                  class="paiement__montant"
+                  id="caisse_montant"
+                  type="text"
+                  value="0,00"
+                  readonly
+                />
+              </div>
+
+              <div class="paiement__rendu" id="caisse_rendu_cadre">
+                <span class="paiement__total_libelle">A rendre</span>
+                <span class="paiement__rendu_valeur" id="caisse_rendu">0,00</span>
+              </div>
+
+              <div class="pave">
+                <button class="pave__touche" data-touche="7" type="button">7</button>
+                <button class="pave__touche" data-touche="8" type="button">8</button>
+                <button class="pave__touche" data-touche="9" type="button">9</button>
+                <button class="pave__touche" data-touche="effacer" type="button">C</button>
+                <button class="pave__touche" data-touche="4" type="button">4</button>
+                <button class="pave__touche" data-touche="5" type="button">5</button>
+                <button class="pave__touche" data-touche="6" type="button">6</button>
+                <button class="pave__touche" data-touche="retour" type="button">&larr;</button>
+                <button class="pave__touche" data-touche="1" type="button">1</button>
+                <button class="pave__touche" data-touche="2" type="button">2</button>
+                <button class="pave__touche" data-touche="3" type="button">3</button>
+                <button class="pave__touche pave__touche--large" data-touche="exact" type="button">
+                  Montant exact
+                </button>
+                <button class="pave__touche" data-touche="0" type="button">0</button>
+                <button class="pave__touche" data-touche="00" type="button">00</button>
+                <button class="pave__touche" data-touche="," type="button">,</button>
+              </div>
+
+              <button class="bouton bouton--principal" id="caisse_encaisser" type="button">
+                Encaisser (Entree)
+              </button>
+              <button class="bouton bouton--danger" id="caisse_annuler" type="button">
+                Annuler la vente (Echap)
+              </button>
+
+              <p class="caisse__aide">
+                Scanne les articles, tape la somme recue au clavier puis valide avec Entree.
+                Le reliquat a remettre s affiche en direct.
+              </p>
+            </div>
+
+            <div class="panneau" id="caisse_ticket_panneau" hidden>
+              <h2 class="panneau__titre">Ticket no <span id="caisse_ticket_numero">--</span></h2>
+              <pre class="ticket_papier" id="caisse_ticket_texte"></pre>
+              <div class="formulaire__actions">
+                <button class="bouton" id="caisse_imprimer" type="button">Imprimer</button>
+                <button class="bouton" id="caisse_fermer_ticket" type="button">Fermer</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
+      <!-- ================= SESSION ================= -->
+      <section class="vue_session" data-section="session" aria-labelledby="titre_session" hidden>
+        <div class="panneau">
+          <h1 class="panneau__titre" id="titre_session">Session de caisse</h1>
+          <p class="panneau__intro">
+            Une seule session a la fois sur ce poste. Toutes les ventes sont rattachees au
+            caissier qui a ouvert la session.
+          </p>
+
+          <div class="session__etat">
+            <div>
+              <div class="session__mesure_libelle">Etat</div>
+              <div class="session__mesure_valeur" id="session_etat">fermee</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Caissier</div>
+              <div class="session__mesure_valeur" id="session_caissier">--</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Ouverte le</div>
+              <div class="session__mesure_valeur" id="session_ouverte_le">--</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Ventes</div>
+              <div class="session__mesure_valeur" id="session_ventes">0</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Encaisse</div>
+              <div class="session__mesure_valeur" id="session_total">0,00</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Fond de caisse</div>
+              <div class="session__mesure_valeur" id="session_fond">0,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panneau" id="session_ouverture" data-saisie="clavier">
+          <h2 class="panneau__titre">Ouvrir une session</h2>
+          <p class="panneau__intro">Choisis le caissier puis saisis son code secret.</p>
+
+          <div class="session__caissiers" id="session_liste_caissiers"></div>
+
+          <div class="formulaire">
+            <div class="formulaire__ligne">
+              <div class="champ">
+                <label class="champ__etiquette" for="session_code">Code du caissier</label>
+                <input
+                  class="champ__saisie champ__saisie--chiffre"
+                  id="session_code"
+                  type="password"
+                  inputmode="numeric"
+                  maxlength="8"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="champ">
+                <label class="champ__etiquette" for="session_fond_saisie">Fond de caisse</label>
+                <input
+                  class="champ__saisie champ__saisie--chiffre"
+                  id="session_fond_saisie"
+                  type="text"
+                  value="0"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <div class="formulaire__actions">
+              <button class="bouton bouton--principal" id="session_ouvrir" type="button">
+                Ouvrir la session
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panneau" id="session_fermeture" data-saisie="clavier" hidden>
+          <h2 class="panneau__titre">Fermer la session</h2>
+          <p class="panneau__intro">
+            Code du caissier en poste, ou code du gerant s il est absent.
+          </p>
+          <div class="formulaire">
+            <div class="formulaire__ligne">
+              <div class="champ">
+                <label class="champ__etiquette" for="session_code_fermeture">Code</label>
+                <input
+                  class="champ__saisie champ__saisie--chiffre"
+                  id="session_code_fermeture"
+                  type="password"
+                  inputmode="numeric"
+                  maxlength="8"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <div class="formulaire__actions">
+              <button class="bouton bouton--danger" id="session_fermer" type="button">
+                Fermer la session
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PARAMETRAGE ================= -->
+      <section
+        class="vue_parametrage"
+        data-section="parametrage"
+        aria-labelledby="titre_parametrage"
+        hidden
+      >
+        <div class="panneau panneau--verrou" id="parametrage_initialisation" data-saisie="clavier" hidden>
+          <h1 class="panneau__titre">Proteger la caisse</h1>
+          <p class="panneau__intro">
+            Premier demarrage : cree le compte gerant. Son code secret protege tout le
+            menu parametrage.
+          </p>
+          <div class="formulaire">
+            <div class="champ">
+              <label class="champ__etiquette" for="initialisation_nom">Nom du gerant</label>
+              <input class="champ__saisie" id="initialisation_nom" type="text" autocomplete="off" />
+            </div>
+            <div class="champ">
+              <label class="champ__etiquette" for="initialisation_code">Code secret</label>
+              <input
+                class="champ__saisie champ__saisie--chiffre"
+                id="initialisation_code"
+                type="password"
+                inputmode="numeric"
+                maxlength="8"
+                autocomplete="off"
+              />
+              <span class="champ__aide">4 a 8 chiffres</span>
+            </div>
+            <div class="champ">
+              <label class="champ__etiquette" for="initialisation_confirmation">Confirmation</label>
+              <input
+                class="champ__saisie champ__saisie--chiffre"
+                id="initialisation_confirmation"
+                type="password"
+                inputmode="numeric"
+                maxlength="8"
+                autocomplete="off"
+              />
+            </div>
+            <div class="formulaire__actions">
+              <button class="bouton bouton--principal" id="initialisation_valider" type="button">
+                Creer le compte gerant
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panneau panneau--verrou" id="parametrage_verrou" data-saisie="clavier" hidden>
+          <h1 class="panneau__titre">Menu protege</h1>
+          <p class="panneau__intro">Code secret du gerant pour acceder au parametrage.</p>
+          <div class="formulaire">
+            <div class="champ">
+              <label class="champ__etiquette" for="parametrage_code">Code du gerant</label>
+              <input
+                class="champ__saisie champ__saisie--chiffre"
+                id="parametrage_code"
+                type="password"
+                inputmode="numeric"
+                maxlength="8"
+                autocomplete="off"
+              />
+            </div>
+            <div class="formulaire__actions">
+              <button class="bouton bouton--principal" id="parametrage_deverrouiller" type="button">
+                Deverrouiller
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="parametrage_corps" hidden>
+          <div class="parametrage__entete">
+            <h1 class="panneau__titre" id="titre_parametrage">
+              Parametrage - gerant <span id="parametrage_nom_gerant">--</span>
+            </h1>
+            <button class="bouton" id="parametrage_verrouiller" type="button">Verrouiller</button>
+          </div>
+
+          <div class="sous_onglets">
+            <button class="sous_onglets__bouton sous_onglets__bouton--actif" data-reglage="commerce" type="button">
+              Commerce et ticket
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="horloge" type="button">
+              Date et heure
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="caissiers" type="button">
+              Caissiers
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="rayons" type="button">Rayons</button>
+            <button class="sous_onglets__bouton" data-reglage="produits" type="button">
+              Produits
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="securite" type="button">
+              Code du gerant
+            </button>
+          </div>
+
+          <!-- commerce -->
+          <div class="parametrage__section" data-reglage_section="commerce" data-saisie="clavier">
+            <div class="panneau">
+              <h2 class="panneau__titre">Identite du commerce</h2>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="commerce_nom">Nom du commerce</label>
+                    <input class="champ__saisie" id="commerce_nom" type="text" autocomplete="off" />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="commerce_devise">Devise</label>
+                    <input class="champ__saisie" id="commerce_devise" type="text" maxlength="8" autocomplete="off" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <h2 class="panneau__titre">Ticket de caisse</h2>
+              <div class="formulaire">
+                <div class="champ champ--bascule">
+                  <input id="ticket_actif" type="checkbox" />
+                  <label class="champ__etiquette" for="ticket_actif">Ticket active</label>
+                </div>
+                <div class="champ champ--bascule">
+                  <input id="ticket_impression_auto" type="checkbox" />
+                  <label class="champ__etiquette" for="ticket_impression_auto">
+                    Impression automatique apres chaque vente
+                  </label>
+                </div>
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="ticket_colonnes">Largeur (colonnes)</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="ticket_colonnes"
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                    />
+                    <span class="champ__aide">32 pour un rouleau 58 mm</span>
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="ticket_entete">Mention d entete</label>
+                    <input class="champ__saisie" id="ticket_entete" type="text" maxlength="60" autocomplete="off" />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="ticket_pied">Mention de pied</label>
+                    <input class="champ__saisie" id="ticket_pied" type="text" maxlength="60" autocomplete="off" />
+                  </div>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="commerce_enregistrer" type="button">
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- horloge -->
+          <div class="parametrage__section" data-reglage_section="horloge" data-saisie="clavier" hidden>
+            <div class="panneau">
+              <h2 class="panneau__titre">Date et heure de la caisse</h2>
+              <p class="panneau__intro">
+                Toutes les ventes sont horodatees par l horloge du poste. Le reglage demande
+                les droits administrateur Windows.
+              </p>
+              <p class="parametrage__horloge" id="horloge_valeur">--</p>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="horloge_date">Date (AAAA-MM-JJ)</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="horloge_date"
+                      type="text"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="horloge_heure">Heure (HH:MM)</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="horloge_heure"
+                      type="text"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="horloge_appliquer" type="button">
+                    Appliquer
+                  </button>
+                  <button class="bouton" id="horloge_panneau" type="button">
+                    Ouvrir le panneau Windows
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- caissiers -->
+          <div class="parametrage__section" data-reglage_section="caissiers" data-saisie="clavier" hidden>
+            <div class="grille_deux">
+              <div class="panneau">
+                <h2 class="panneau__titre" id="caissier_titre_formulaire">Nouveau caissier</h2>
+                <div class="formulaire">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="caissier_nom">Nom</label>
+                    <input class="champ__saisie" id="caissier_nom" type="text" autocomplete="off" />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="caissier_code">Code secret</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="caissier_code"
+                      type="password"
+                      inputmode="numeric"
+                      maxlength="8"
+                      autocomplete="off"
+                    />
+                    <span class="champ__aide">4 a 8 chiffres. En modification : laisser vide pour conserver.</span>
+                  </div>
+                  <div class="champ champ--bascule">
+                    <input id="caissier_actif" type="checkbox" checked />
+                    <label class="champ__etiquette" for="caissier_actif">Compte actif</label>
+                  </div>
+                  <div class="formulaire__actions">
+                    <button class="bouton bouton--principal" id="caissier_enregistrer" type="button">
+                      Creer
+                    </button>
+                    <button class="bouton" id="caissier_annuler" type="button" hidden>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cadre_tableau">
+                <table class="tableau">
+                  <thead>
+                    <tr>
+                      <th>Nom</th>
+                      <th>Etat</th>
+                      <th class="tableau__chiffre">Ventes</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="caissiers_liste"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- rayons -->
+          <div class="parametrage__section" data-reglage_section="rayons" data-saisie="clavier" hidden>
+            <div class="grille_deux">
+              <div class="panneau">
+                <h2 class="panneau__titre" id="rayon_titre_formulaire">Nouveau rayon</h2>
+                <div class="formulaire">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="rayon_libelle">Libelle</label>
+                    <input class="champ__saisie" id="rayon_libelle" type="text" autocomplete="off" />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="rayon_ordre">Ordre d affichage</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="rayon_ordre"
+                      type="text"
+                      inputmode="numeric"
+                      value="0"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="champ champ--bascule">
+                    <input id="rayon_actif" type="checkbox" checked />
+                    <label class="champ__etiquette" for="rayon_actif">Rayon actif</label>
+                  </div>
+                  <div class="formulaire__actions">
+                    <button class="bouton bouton--principal" id="rayon_enregistrer" type="button">
+                      Creer
+                    </button>
+                    <button class="bouton" id="rayon_annuler" type="button" hidden>Annuler</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cadre_tableau">
+                <table class="tableau">
+                  <thead>
+                    <tr>
+                      <th>Libelle</th>
+                      <th class="tableau__chiffre">Ordre</th>
+                      <th>Etat</th>
+                      <th class="tableau__chiffre">Produits</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rayons_liste"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- produits -->
+          <div class="parametrage__section" data-reglage_section="produits" data-saisie="clavier" hidden>
+            <div class="grille_deux">
+              <div class="panneau">
+                <h2 class="panneau__titre" id="produit_titre_formulaire">Nouveau produit</h2>
+                <div class="formulaire">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="produit_libelle">Libelle</label>
+                    <input class="champ__saisie" id="produit_libelle" type="text" autocomplete="off" />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="produit_rayon">Rayon</label>
+                    <select class="champ__liste" id="produit_rayon"></select>
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="produit_code">Code-barres</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="produit_code"
+                      type="text"
+                      data-douchette="oui"
+                      autocomplete="off"
+                    />
+                    <span class="champ__aide">Scanne l etiquette ici. Vide = vente au toucher.</span>
+                  </div>
+                  <div class="formulaire__ligne">
+                    <div class="champ">
+                      <label class="champ__etiquette" for="produit_prix">Prix</label>
+                      <input
+                        class="champ__saisie champ__saisie--chiffre"
+                        id="produit_prix"
+                        type="text"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="champ">
+                      <label class="champ__etiquette" for="produit_stock">Stock</label>
+                      <input
+                        class="champ__saisie champ__saisie--chiffre"
+                        id="produit_stock"
+                        type="text"
+                        inputmode="numeric"
+                        value="0"
+                        autocomplete="off"
+                      />
+                    </div>
+                  </div>
+                  <div class="champ champ--bascule">
+                    <input id="produit_suivi" type="checkbox" checked />
+                    <label class="champ__etiquette" for="produit_suivi">Suivre le stock</label>
+                  </div>
+                  <div class="champ champ--bascule">
+                    <input id="produit_actif" type="checkbox" checked />
+                    <label class="champ__etiquette" for="produit_actif">Produit en vente</label>
+                  </div>
+                  <div class="formulaire__actions">
+                    <button class="bouton bouton--principal" id="produit_enregistrer" type="button">
+                      Creer
+                    </button>
+                    <button class="bouton" id="produit_annuler" type="button" hidden>Annuler</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="parametrage__section">
+                <div class="caisse__recherche">
+                  <input
+                    class="champ__saisie"
+                    id="produits_recherche"
+                    type="text"
+                    placeholder="Chercher un produit"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="cadre_tableau">
+                  <table class="tableau">
+                    <thead>
+                      <tr>
+                        <th>Libelle</th>
+                        <th>Rayon</th>
+                        <th>Code</th>
+                        <th class="tableau__chiffre">Prix</th>
+                        <th class="tableau__chiffre">Stock</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="produits_liste"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- securite -->
+          <div class="parametrage__section" data-reglage_section="securite" data-saisie="clavier" hidden>
+            <div class="panneau">
+              <h2 class="panneau__titre">Code secret du gerant</h2>
+              <p class="panneau__intro">
+                8 chiffres au maximum. Il protege ce menu, autorise la fermeture d une session
+                en l absence du caissier et la remise a zero des ventes.
+              </p>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="gerant_ancien_code">Code actuel</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="gerant_ancien_code"
+                      type="password"
+                      inputmode="numeric"
+                      maxlength="8"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="gerant_nouveau_code">Nouveau code</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="gerant_nouveau_code"
+                      type="password"
+                      inputmode="numeric"
+                      maxlength="8"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="gerant_confirmation">Confirmation</label>
+                    <input
+                      class="champ__saisie champ__saisie--chiffre"
+                      id="gerant_confirmation"
+                      type="password"
+                      inputmode="numeric"
+                      maxlength="8"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="gerant_changer_code" type="button">
+                    Changer le code
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <h2 class="panneau__titre">Nom du gerant</h2>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="gerant_nom">Nom</label>
+                    <input class="champ__saisie" id="gerant_nom" type="text" autocomplete="off" />
+                  </div>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton" id="gerant_renommer" type="button">Renommer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= RAPPORTS ================= -->
+      <section class="vue_rapports" data-section="rapports" aria-labelledby="titre_rapports" hidden>
+        <div class="panneau panneau--verrou" id="rapports_verrou">
+          <h1 class="panneau__titre">Reserve au gerant</h1>
+          <p class="panneau__intro">
+            Deverrouille le parametrage avec le code du gerant pour consulter les ventes et
+            editer le rapport Z.
+          </p>
+          <button class="bouton bouton--principal" id="rapports_aller_parametrage" type="button">
+            Saisir le code du gerant
+          </button>
+        </div>
+
+        <div id="rapports_corps" hidden>
+          <h1 class="panneau__titre" id="titre_rapports">Ventes et rapport Z</h1>
+
+          <div class="rapports__mesures">
+            <article class="carte">
+              <h2 class="carte__titre">Ventes en memoire</h2>
+              <p class="carte__valeur" id="rapports_nombre_ventes">0</p>
+              <p class="carte__detail">effacees par la remise a zero</p>
+            </article>
+            <article class="carte">
+              <h2 class="carte__titre">Total en memoire</h2>
+              <p class="carte__valeur" id="rapports_total">0,00</p>
+              <p class="carte__detail">depuis la derniere cloture</p>
+            </article>
+            <article class="carte">
+              <h2 class="carte__titre">Grand total</h2>
+              <p class="carte__valeur" id="rapports_grand_total">0,00</p>
+              <p class="carte__detail">jamais efface</p>
+            </article>
+            <article class="carte">
+              <h2 class="carte__titre">Remises a zero</h2>
+              <p class="carte__valeur" id="rapports_razs">0</p>
+              <p class="carte__detail">compteur permanent</p>
+            </article>
+            <article class="carte">
+              <h2 class="carte__titre">Dernier ticket</h2>
+              <p class="carte__valeur" id="rapports_numero_ticket">0</p>
+              <p class="carte__detail">numerotation continue</p>
+            </article>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Ventes des caissiers</h2>
+            <div class="caisse__recherche" data-saisie="clavier">
+              <select class="champ__liste" id="rapports_filtre_caissier">
+                <option value="">Tous les caissiers</option>
+              </select>
+              <button class="bouton" id="rapports_rafraichir" type="button">Rafraichir</button>
+            </div>
+            <div class="cadre_tableau">
+              <table class="tableau">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Date</th>
+                    <th>Caissier</th>
+                    <th class="tableau__chiffre">Articles</th>
+                    <th class="tableau__chiffre">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="rapports_journal"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Totaux par caissier</h2>
+            <div class="cadre_tableau">
+              <table class="tableau">
+                <thead>
+                  <tr>
+                    <th>Caissier</th>
+                    <th class="tableau__chiffre">Ventes</th>
+                    <th class="tableau__chiffre">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="rapports_totaux"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Rapport Z et remise a zero</h2>
+            <p class="panneau__intro">
+              Le rapport Z imprime toutes les ventes puis efface la memoire des ventes.
+              Conserves : grands totaux, compteur de remises a zero, numero de ticket et toute
+              la programmation (rayons, produits, caissiers, gerant).
+            </p>
+
+            <p class="avertissement" id="rapports_alerte_session" hidden>
+              Une session de caisse est ouverte : ferme-la avant la cloture.
+            </p>
+
+            <div class="formulaire__actions">
+              <button class="bouton" id="rapports_previsualiser" type="button">
+                Previsualiser le rapport Z
+              </button>
+              <button class="bouton" id="rapports_imprimer" type="button" hidden>Imprimer</button>
+            </div>
+
+            <pre class="ticket_papier" id="rapports_texte_z" hidden></pre>
+
+            <div class="formulaire" id="rapports_cloture" hidden>
+              <div class="champ champ--bascule">
+                <input id="rapports_confirmation" type="checkbox" />
+                <label class="champ__etiquette" for="rapports_confirmation">
+                  Je confirme l effacement des ventes de la periode
+                </label>
+              </div>
+              <div class="formulaire__actions">
+                <button class="bouton bouton--danger" id="rapports_cloturer" type="button" disabled>
+                  Editer le rapport Z et repartir a zero
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Rapports Z archives</h2>
+            <div class="cadre_tableau">
+              <table class="tableau">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Edite le</th>
+                    <th class="tableau__chiffre">Ventes</th>
+                    <th class="tableau__chiffre">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="rapports_archives"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PERIPHERIQUES ================= -->
       <section class="vue_peripheriques" data-section="peripheriques" aria-labelledby="titre_peripheriques" hidden>
         <div class="vue_peripheriques__entete">
           <div>
@@ -152,17 +945,114 @@
         <div class="vue_peripheriques__actions">
           <button class="bouton" id="bouton_calibration" type="button">Calibrer la douchette</button>
           <p class="vue_peripheriques__aide">
-            Si la douchette n'est pas reconnue, lance la calibration : toute frappe est alors
-            acceptee et les mesures reelles du lecteur s'affichent.
+            Si la douchette n est pas reconnue, lance la calibration : toute frappe est alors
+            acceptee et les mesures reelles du lecteur s affichent.
           </p>
         </div>
       </section>
+
+      <!-- ================= DIAGNOSTIC ================= -->
+      <section class="vue_diagnostic" data-section="diagnostic" aria-labelledby="titre_diagnostic" hidden>
+        <h1 class="vue_diagnostic__titre" id="titre_diagnostic">Etat du socle</h1>
+        <p class="vue_diagnostic__intro">
+          Verification de l installation locale. Aucune connexion reseau n est utilisee.
+        </p>
+
+        <div class="grille_cartes">
+          <article class="carte">
+            <h2 class="carte__titre">Base de donnees</h2>
+            <p class="carte__valeur" id="valeur_base">verification...</p>
+            <p class="carte__detail" id="detail_chemin_base">chemin indisponible</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Migrations appliquees</h2>
+            <p class="carte__valeur" id="valeur_migrations">--</p>
+            <p class="carte__detail">schema versionne et rejouable</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Parametres charges</h2>
+            <p class="carte__valeur" id="valeur_parametres">--</p>
+            <p class="carte__detail">devise, TVA, commerce, douchette</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Caissiers</h2>
+            <p class="carte__valeur" id="valeur_caissiers">--</p>
+            <p class="carte__detail">comptes enregistres</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Catalogue</h2>
+            <p class="carte__valeur" id="valeur_catalogue">--</p>
+            <p class="carte__detail">rayons et produits</p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Moteur de rendu</h2>
+            <p class="carte__valeur">WebView2 local</p>
+            <p class="carte__detail">CSS brut, zero ressource externe</p>
+          </article>
+        </div>
+
+        <h2 class="vue_diagnostic__titre_secondaire">Modules</h2>
+        <ul class="liste_modules">
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Parametrage protege (CRUD complet)</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Catalogue rayons et produits</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Sessions de caisse</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Encaissement et ticket</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Rapport Z et remise a zero</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Douchette code-barres</span>
+            <span class="badge badge--succes">operationnel</span>
+          </li>
+          <li class="liste_modules__element">
+            <span class="liste_modules__nom">Imprimante thermique 58 mm (ESC/POS direct)</span>
+            <span class="badge badge--attente">a venir</span>
+          </li>
+        </ul>
+
+        <p class="vue_diagnostic__erreur" id="zone_erreur" hidden></p>
+      </section>
     </main>
 
+    <div class="notifications" id="zone_notifications" aria-live="polite"></div>
+    <pre class="zone_impression" id="zone_impression"></pre>
+
     <script src="scripts/api/pont.js"></script>
+    <script src="scripts/noyau/format.js"></script>
+    <script src="scripts/noyau/acces.js"></script>
+    <script src="scripts/composants/notification.js"></script>
+    <script src="scripts/composants/impression.js"></script>
     <script src="scripts/peripheriques/scanner.js"></script>
     <script src="scripts/vues/diagnostic.js"></script>
     <script src="scripts/vues/peripheriques.js"></script>
+    <script src="scripts/vues/caisse.js"></script>
+    <script src="scripts/vues/session.js"></script>
+    <script src="scripts/vues/parametrage/commerce.js"></script>
+    <script src="scripts/vues/parametrage/horloge.js"></script>
+    <script src="scripts/vues/parametrage/caissiers.js"></script>
+    <script src="scripts/vues/parametrage/rayons.js"></script>
+    <script src="scripts/vues/parametrage/produits.js"></script>
+    <script src="scripts/vues/parametrage/securite.js"></script>
+    <script src="scripts/vues/parametrage.js"></script>
+    <script src="scripts/vues/rapports.js"></script>
     <script src="scripts/application.js"></script>
   </body>
 </html>

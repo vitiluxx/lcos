@@ -1,0 +1,34 @@
+.vue_rapports {
+  display: grid;
+  gap: var(--espace_4);
+}
+
+.rapports__mesures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--espace_4);
+}
+
+.ticket_papier {
+  margin: 0;
+  padding: var(--espace_4);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  font-family: var(--police_chiffre);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-x: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.avertissement {
+  padding: var(--espace_3) var(--espace_4);
+  border: 1px solid var(--couleur_alerte);
+  border-left-width: 4px;
+  border-radius: var(--rayon_1);
+  font-size: 13px;
+  color: var(--couleur_alerte);
+}

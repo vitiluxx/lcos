@@ -1,0 +1,49 @@
+.vue_session {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--espace_5);
+}
+
+.session__etat {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--espace_4);
+}
+
+.session__mesure_libelle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--couleur_texte_faible);
+}
+
+.session__mesure_valeur {
+  font-family: var(--police_chiffre);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.session__caissiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--espace_2);
+}
+
+.pastille_caissier {
+  padding: var(--espace_3);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_2);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pastille_caissier--actif {
+  border-color: var(--couleur_accent);
+  background: var(--couleur_accent_faible);
+  color: var(--couleur_accent);
+}

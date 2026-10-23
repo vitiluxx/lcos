@@ -1,0 +1,55 @@
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tableau th {
+  text-align: left;
+  padding: var(--espace_2) var(--espace_3);
+  border-bottom: 1px solid var(--couleur_bordure);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--couleur_texte_faible);
+}
+
+.tableau td {
+  padding: var(--espace_2) var(--espace_3);
+  border-bottom: 1px solid var(--couleur_bordure);
+  vertical-align: middle;
+}
+
+.tableau tr:last-child td {
+  border-bottom: none;
+}
+
+.tableau__chiffre {
+  font-family: var(--police_chiffre);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tableau__actions {
+  display: flex;
+  gap: var(--espace_1);
+  justify-content: flex-end;
+}
+
+.tableau__vide {
+  padding: var(--espace_5);
+  text-align: center;
+  color: var(--couleur_texte_faible);
+  font-size: 13px;
+}
+
+.tableau tr[data-selectionne="oui"] td {
+  background: var(--couleur_accent_faible);
+}
+
+.cadre_tableau {
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_2);
+  background: var(--couleur_surface);
+  overflow: hidden;
+}

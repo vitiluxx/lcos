@@ -13,6 +13,15 @@ pub enum ErreurApplication {
 
     #[error("donnee invalide: {0}")]
     Validation(String),
+
+    #[error("acces refuse: {0}")]
+    AccesRefuse(String),
+
+    #[error("introuvable: {0}")]
+    Introuvable(String),
+
+    #[error("operation refusee: {0}")]
+    Conflit(String),
 }
 
 impl Serialize for ErreurApplication {

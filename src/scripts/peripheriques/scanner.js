@@ -123,8 +123,30 @@
     }, reglages.delai_inactivite);
   }
 
+  // Une saisie au clavier dans un formulaire n est pas un scan. Exception :
+  // les champs marques data-douchette, ou l on veut justement lire une
+  // etiquette (saisie du code-barres d un produit).
+  function cibleIgnoree(evenement) {
+    const cible = evenement.target;
+
+    if (!cible || typeof cible.closest !== "function") {
+      return false;
+    }
+
+    if (cible.dataset && cible.dataset.douchette === "oui") {
+      return false;
+    }
+
+    return Boolean(cible.closest('[data-saisie="clavier"]'));
+  }
+
   function surTouche(evenement) {
     if (!reglages.actif) {
+      return;
+    }
+
+    if (cibleIgnoree(evenement)) {
+      reinitialiser();
       return;
     }
 
@@ -181,6 +203,7 @@
     reglages: function () {
       return Object.assign({}, reglages);
     },
+    oublier: reinitialiser,
     calibrer: function (actif) {
       calibration = Boolean(actif);
       reinitialiser();

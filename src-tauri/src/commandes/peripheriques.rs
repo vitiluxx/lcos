@@ -31,7 +31,7 @@ pub struct ReglagesScanner {
 
 #[tauri::command]
 pub fn recuperer_reglages_scanner(depot: State<Depot>) -> Resultat<ReglagesScanner> {
-    depot.executer(|connexion| charger(connexion))
+    depot.executer(charger)
 }
 
 #[tauri::command]

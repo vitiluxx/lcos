@@ -1,0 +1,23 @@
+.vue_parametrage {
+  display: grid;
+  gap: var(--espace_4);
+}
+
+.parametrage__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace_3);
+  flex-wrap: wrap;
+}
+
+.parametrage__section {
+  display: grid;
+  gap: var(--espace_4);
+}
+
+.parametrage__horloge {
+  font-family: var(--police_chiffre);
+  font-size: 24px;
+  font-weight: 600;
+}

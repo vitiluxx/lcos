@@ -20,8 +20,8 @@
   --rayon_1: 6px;
   --rayon_2: 10px;
 
-  --police_systeme: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  --police_chiffre: Consolas, "Courier New", monospace;
+  --police_systeme: "Inter", "Segoe UI", Tahoma, sans-serif;
+  --police_chiffre: "JetBrains Mono", Consolas, "Courier New", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -60,6 +60,7 @@ body {
   font-family: var(--police_systeme);
   font-size: 15px;
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   -webkit-user-select: none;
   user-select: none;
 }

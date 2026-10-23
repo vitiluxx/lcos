@@ -19,6 +19,21 @@ const MIGRATIONS: &[Migration] = &[
         nom: "peripheriques",
         sql: include_str!("../../migrations/002_peripheriques.sql"),
     },
+    Migration {
+        version: 3,
+        nom: "comptes",
+        sql: include_str!("../../migrations/003_comptes.sql"),
+    },
+    Migration {
+        version: 4,
+        nom: "catalogue",
+        sql: include_str!("../../migrations/004_catalogue.sql"),
+    },
+    Migration {
+        version: 5,
+        nom: "ventes",
+        sql: include_str!("../../migrations/005_ventes.sql"),
+    },
 ];
 
 const CREATION_JOURNAL: &str = "CREATE TABLE IF NOT EXISTS migration (
