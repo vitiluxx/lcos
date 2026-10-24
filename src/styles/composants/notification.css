@@ -32,3 +32,36 @@
 .notification--neutre {
   border-left-color: var(--couleur_texte_faible);
 }
+
+/*
+ * Eclair de confirmation de vente : affiche au centre de l ecran quand
+ * l impression du recu est desactivee. Une seconde, ou le temps que le
+ * caissier retape Entree.
+ */
+.zone_eclair {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.zone_eclair:empty {
+  display: none;
+}
+
+.eclair {
+  padding: var(--espace_5) var(--espace_6);
+  border: 2px solid var(--couleur_succes);
+  border-radius: var(--rayon_2);
+  background: var(--couleur_surface);
+  color: var(--couleur_succes);
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.26);
+  pointer-events: auto;
+  cursor: pointer;
+}

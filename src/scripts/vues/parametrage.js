@@ -1,6 +1,8 @@
 /*
  * Orchestrateur du menu parametrage : verrou par code gerant, puis aiguillage
- * vers les six sections de reglage. Chaque section est un module autonome.
+ * vers les sections de reglage. Chaque section est un module autonome. Les
+ * rapports, les peripheriques et le diagnostic sont des sections comme les
+ * autres : ils ne sont plus accessibles sans le code du gerant.
  */
 (function (global) {
   "use strict";
@@ -25,6 +27,21 @@
     },
     securite: function () {
       return global.reglageSecurite;
+    },
+    licence: function () {
+      return global.reglageLicence;
+    },
+    transfert: function () {
+      return global.reglageTransfert;
+    },
+    rapports: function () {
+      return global.vueRapports;
+    },
+    peripheriques: function () {
+      return global.vuePeripheriques;
+    },
+    diagnostic: function () {
+      return global.vueDiagnostic;
     }
   };
 
@@ -51,7 +68,9 @@
 
     const module = SECTIONS[nom]();
 
-    if (module && module.rafraichir) {
+    if (module && module.entrer) {
+      module.entrer();
+    } else if (module && module.rafraichir) {
       module.rafraichir();
     }
 
@@ -68,6 +87,23 @@
     element("parametrage_verrou").hidden = !configure || ouvert;
     element("parametrage_corps").hidden = !configure || !ouvert;
     element("parametrage_nom_gerant").textContent = global.acces.nom() || protection.nom_gerant;
+  }
+
+  // A l entree dans le parametrage, le clavier doit deja ecrire dans le champ
+  // qui attend quelque chose : le code du gerant, ou le nom au premier
+  // demarrage. Aucun clic prealable pour le caissier.
+  function pointerSaisie() {
+    if (!protection.gerant_configure) {
+      element("initialisation_nom").focus();
+      return;
+    }
+
+    if (!global.acces.actif()) {
+      const champ = element("parametrage_code");
+
+      champ.value = "";
+      champ.focus();
+    }
   }
 
   async function rafraichir() {
@@ -99,6 +135,11 @@
     }
   }
 
+  async function entrer() {
+    await rafraichir();
+    pointerSaisie();
+  }
+
   async function verrouiller() {
     const jeton = global.acces.jeton();
 
@@ -113,6 +154,7 @@
     }
 
     appliquerVisibilite();
+    pointerSaisie();
     global.notifier.neutre("Parametrage verrouille.");
   }
 
@@ -178,8 +220,12 @@
   global.vueParametrage = {
     initialiser: initialiser,
     rafraichir: rafraichir,
-    entrer: rafraichir,
+    entrer: entrer,
+    verrouiller: verrouiller,
     surScan: surScan,
+    sectionCourante: function () {
+      return sectionCourante;
+    },
     protegee: function () {
       return protection.gerant_configure;
     }

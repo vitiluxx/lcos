@@ -1,7 +1,11 @@
 /*
- * Vue d encaissement. Le panier ne porte que des identifiants et des
- * quantites : les prix affiches viennent du catalogue charge, et c est le
- * noyau Rust qui refait le chiffrage au moment de l encaissement.
+ * Vue d encaissement. Deux modes de saisie :
+ *   - scan    : la douchette remplit le panier, le pave saisit la somme recue.
+ *   - manuel  : le pave saisit le prix d un article, la touche + l ajoute a la
+ *               sommation, la touche Entree arrete la sommation et donne la
+ *               main au champ de la somme recue.
+ * Le panier ne porte que des identifiants, des quantites et, pour les articles
+ * libres, un prix : c est le noyau Rust qui refait le chiffrage.
  */
 (function (global) {
   "use strict";
@@ -15,8 +19,11 @@
   let produits = [];
   let reglages = null;
   let session = null;
+  let mode = "scan";
+  let phase = "paiement";
   let montantSaisi = "";
   let montantStable = "";
+  let prixSaisi = "";
   let minuterieStable = null;
   let dernierInstantTouche = 0;
   let encaissementEnCours = false;
@@ -24,43 +31,121 @@
 
   const element = global.format.element;
 
+  function enSaisieDePrix() {
+    return mode === "manuel" && phase === "saisie";
+  }
+
   function totalCentimes() {
     return panier.reduce(function (somme, ligne) {
       return somme + ligne.prix_centimes * ligne.quantite;
     }, 0);
   }
 
+  function enCentimes(texte) {
+    return global.format.centimes(texte);
+  }
+
   function recuCentimes() {
-    if (!montantSaisi) {
-      return 0;
+    return enCentimes(montantSaisi);
+  }
+
+  // Une frappe libre peut contenir n importe quoi : on ne garde que des
+  // chiffres, une seule virgule et deux decimales au maximum.
+  function normaliser(brut) {
+    let resultat = "";
+
+    for (const caractere of String(brut || "")) {
+      const signe = caractere === "." ? "," : caractere;
+
+      if (signe === ",") {
+        if (!global.format.avecDecimales() || resultat.indexOf(",") !== -1) {
+          continue;
+        }
+
+        resultat = (resultat || "0") + ",";
+        continue;
+      }
+
+      if (signe < "0" || signe > "9") {
+        continue;
+      }
+
+      const tranches = resultat.split(",");
+
+      if (tranches.length > 1) {
+        if (tranches[1].length >= 2) {
+          continue;
+        }
+      } else if (tranches[0].length >= CHIFFRES_ENTIERS_MAXIMAUX) {
+        continue;
+      }
+
+      resultat += signe;
     }
 
-    const tranches = montantSaisi.split(",");
-    const unites = global.format.entier(tranches[0] || "0", 0);
-    const decimales = (tranches[1] || "").padEnd(2, "0").slice(0, 2);
+    return resultat;
+  }
 
-    return unites * 100 + global.format.entier(decimales, 0);
+  function poser(champ, valeur) {
+    if (champ.value !== valeur) {
+      champ.value = valeur;
+    }
   }
 
   function afficherMontant() {
-    element("caisse_montant").value = montantSaisi || "0,00";
+    poser(element("caisse_montant"), montantSaisi || global.format.monnaie(0));
+  }
+
+  function afficherPrix() {
+    poser(element("caisse_prix"), prixSaisi);
+  }
+
+  function etatPaiement(total, recu) {
+    if (!panier.length || montantSaisi === "") {
+      return "neutre";
+    }
+
+    if (recu < total) {
+      return "insuffisant";
+    }
+
+    return recu === total ? "exact" : "rendu";
   }
 
   function afficherTotaux() {
     const total = totalCentimes();
     const recu = recuCentimes();
-    const rendu = recu - total;
+    const etat = etatPaiement(total, recu);
     const cadre = element("caisse_rendu_cadre");
+    const champ = element("caisse_montant");
 
     element("caisse_total").textContent = global.format.monnaie(total);
-    element("caisse_rendu").textContent = global.format.monnaie(Math.abs(rendu));
+    element("caisse_total_libelle").textContent = enSaisieDePrix()
+      ? "Sommation"
+      : "Total a payer";
 
-    const insuffisant = montantSaisi !== "" && rendu < 0;
+    champ.className = "paiement__montant";
+    cadre.className = "paiement__rendu";
 
-    cadre.className = insuffisant
-      ? "paiement__rendu paiement__rendu--insuffisant"
-      : "paiement__rendu";
-    cadre.firstElementChild.textContent = insuffisant ? "Manque" : "A rendre";
+    if (etat === "insuffisant") {
+      champ.classList.add("paiement__montant--insuffisant");
+      cadre.classList.add("paiement__rendu--insuffisant");
+      element("caisse_rendu_libelle").textContent = "Manque";
+      element("caisse_rendu").textContent = global.format.monnaie(total - recu);
+    } else if (etat === "exact") {
+      champ.classList.add("paiement__montant--exact");
+      cadre.classList.add("paiement__rendu--exact");
+      element("caisse_rendu_libelle").textContent = "Compte juste";
+      element("caisse_rendu").textContent = "";
+    } else if (etat === "rendu") {
+      champ.classList.add("paiement__montant--rendu");
+      cadre.classList.add("paiement__rendu--rendu");
+      element("caisse_rendu_libelle").textContent = "A rendre";
+      element("caisse_rendu").textContent = global.format.monnaie(recu - total);
+    } else {
+      element("caisse_rendu_libelle").textContent = "A rendre";
+      element("caisse_rendu").textContent = "";
+    }
 
     element("caisse_encaisser").disabled =
       encaissementEnCours || panier.length === 0 || recu < total;
@@ -144,6 +229,29 @@
     afficherPanier();
   }
 
+  // Article sans fiche catalogue : seul le prix saisi le definit.
+  function ajouterArticleLibre() {
+    const centimes = enCentimes(prixSaisi);
+
+    if (!prixSaisi || centimes <= 0) {
+      global.notifier.alerte("Saisis d abord un prix superieur a zero.");
+      return false;
+    }
+
+    panier.push({
+      produit: null,
+      libelle: "Article " + (panier.length + 1),
+      prix_centimes: centimes,
+      quantite: 1
+    });
+
+    prixSaisi = "";
+    afficherPrix();
+    afficherPanier();
+
+    return true;
+  }
+
   function changerQuantite(rang, pas) {
     const ligne = panier[rang];
 
@@ -169,7 +277,15 @@
     panier.length = 0;
     montantSaisi = "";
     montantStable = "";
+    prixSaisi = "";
+
+    if (mode === "manuel") {
+      phase = "saisie";
+    }
+
     afficherMontant();
+    afficherPrix();
+    appliquerIndice();
     afficherPanier();
   }
 
@@ -253,59 +369,112 @@
     }, DELAI_STABILITE_MS);
   }
 
-  function ajouterAuMontant(caracteres) {
-    let suite = montantSaisi;
-
-    for (const caractere of caracteres) {
-      if (caractere === ",") {
-        if (suite.indexOf(",") !== -1) {
-          continue;
-        }
-
-        suite = (suite || "0") + ",";
-        continue;
-      }
-
-      const tranches = suite.split(",");
-
-      if (tranches.length > 1) {
-        if (tranches[1].length >= 2) {
-          continue;
-        }
-      } else if (tranches[0].length >= CHIFFRES_ENTIERS_MAXIMAUX) {
-        continue;
-      }
-
-      suite += caractere;
+  function ajouterAuTampon(caracteres) {
+    if (enSaisieDePrix()) {
+      prixSaisi = normaliser(prixSaisi + caracteres);
+      afficherPrix();
+      afficherTotaux();
+      return;
     }
 
-    montantSaisi = suite;
+    montantSaisi = normaliser(montantSaisi + caracteres);
     afficherMontant();
     afficherTotaux();
     stabiliserMontant();
   }
 
-  function retirerDuMontant() {
+  function retirerDuTampon() {
+    if (enSaisieDePrix()) {
+      prixSaisi = prixSaisi.slice(0, -1);
+      afficherPrix();
+      afficherTotaux();
+      return;
+    }
+
     montantSaisi = montantSaisi.slice(0, -1);
     afficherMontant();
     afficherTotaux();
     stabiliserMontant();
   }
 
-  function montantExact() {
-    const total = totalCentimes();
+  function effacerTampon() {
+    if (enSaisieDePrix()) {
+      prixSaisi = "";
+      afficherPrix();
+      afficherTotaux();
+      return;
+    }
 
-    montantSaisi = global.format.monnaie(total).replace(/ /g, "");
+    montantSaisi = "";
+    montantStable = "";
+    afficherMontant();
+    afficherTotaux();
+  }
+
+  function montantExact() {
+    montantSaisi = global.format.monnaie(totalCentimes()).replace(/ /g, "");
     montantStable = montantSaisi;
     afficherMontant();
     afficherTotaux();
   }
 
-  function effacerMontant() {
+  // Fin de la sommation manuelle : le total est fige, le curseur passe sur la
+  // somme recue du client.
+  function totaliser() {
+    if (prixSaisi && !ajouterArticleLibre()) {
+      return;
+    }
+
+    if (!panier.length) {
+      global.notifier.alerte("Aucun article : saisis un prix puis touche +.");
+      return;
+    }
+
+    phase = "paiement";
+    element("caisse_bloc_prix").hidden = true;
+    element("caisse_ajouter_manuel").hidden = true;
+    appliquerIndice();
+    afficherTotaux();
+
+    const champ = element("caisse_montant");
+
+    champ.focus();
+    champ.select();
+  }
+
+  function appliquerIndice() {
+    const indice = element("caisse_indice");
+
+    if (mode === "scan") {
+      indice.textContent = "Scanne les articles puis tape la somme recue (Entree).";
+      return;
+    }
+
+    indice.textContent = enSaisieDePrix()
+      ? "Tape un prix, touche + pour l ajouter, Entree pour totaliser."
+      : "Tape la somme recue du client, Entree pour encaisser.";
+  }
+
+  function appliquerMode(nouveau) {
+    mode = nouveau === "manuel" ? "manuel" : "scan";
+    phase = mode === "manuel" ? "saisie" : "paiement";
+    prixSaisi = "";
     montantSaisi = "";
     montantStable = "";
+
+    element("caisse_mode_scan").classList.toggle("bouton_mode--actif", mode === "scan");
+    element("caisse_mode_manuel").classList.toggle("bouton_mode--actif", mode === "manuel");
+    element("caisse_bloc_prix").hidden = mode !== "manuel";
+    element("caisse_ajouter_manuel").hidden = mode !== "manuel";
+
+    afficherPrix();
     afficherMontant();
+    appliquerIndice();
     afficherTotaux();
+
+    if (mode === "manuel") {
+      element("caisse_prix").focus();
+    }
   }
 
   async function encaisser() {
@@ -319,21 +488,37 @@
     try {
       const ticket = await global.pont.appeler("encaisser", {
         lignes: panier.map(function (ligne) {
-          return { produit: ligne.produit, quantite: ligne.quantite };
+          return {
+            produit: ligne.produit,
+            quantite: ligne.quantite,
+            prix: ligne.produit === null
+              ? global.format.monnaie(ligne.prix_centimes).replace(/ /g, "")
+              : null,
+            libelle: ligne.produit === null ? ligne.libelle : null
+          };
         }),
         recu: montantSaisi || "0"
       });
 
       afficherTicket(ticket);
-      global.notifier.succes(
-        "Ticket no " +
-          ticket.numero_ticket +
-          " encaisse. A rendre : " +
-          global.format.monnaie(ticket.rendu_centimes)
-      );
+
+      if (ticket.impression_recu) {
+        global.notifier.succes(
+          "Ticket no " +
+            ticket.numero_ticket +
+            " encaisse. A rendre : " +
+            global.format.monnaie(ticket.rendu_centimes)
+        );
+      }
 
       viderPanier();
       await rafraichirCatalogue();
+
+      if (mode === "manuel") {
+        element("caisse_bloc_prix").hidden = false;
+        element("caisse_ajouter_manuel").hidden = false;
+        element("caisse_prix").focus();
+      }
 
       if (global.vueSession) {
         global.vueSession.rafraichir();
@@ -346,16 +531,47 @@
     }
   }
 
+  // Impression des recus desactivee : aucune feuille, aucun panneau de ticket,
+  // seulement l eclair de confirmation au centre de l ecran. Le rapport Z,
+  // lui, s imprime toujours : ce reglage ne touche que la caisse.
   function afficherTicket(ticket) {
     const panneau = element("caisse_ticket_panneau");
 
     element("caisse_ticket_numero").textContent = String(ticket.numero_ticket);
     element("caisse_ticket_texte").textContent = ticket.texte;
+
+    if (!ticket.impression_recu) {
+      panneau.hidden = true;
+      global.notifier.eclair(confirmationEclair(ticket));
+      return;
+    }
+
     panneau.hidden = !ticket.ticket_actif;
 
-    if (ticket.ticket_actif && ticket.impression_auto) {
+    if (ticket.ticket_actif) {
       global.impression.imprimer(ticket.texte);
     }
+  }
+
+  function confirmationEclair(ticket) {
+    if (ticket.rendu_centimes > 0) {
+      return "Vente encaissee - a rendre " + global.format.monnaie(ticket.rendu_centimes);
+    }
+
+    return "Vente encaissee";
+  }
+
+  // La touche Entree fait partir l eclair aussitot : le caissier rapide
+  // n attend pas la seconde complete avant la vente suivante.
+  function eclairAbsorbeEntree(evenement) {
+    if (evenement.key !== "Enter" || !global.notifier.eclairAffiche()) {
+      return false;
+    }
+
+    evenement.preventDefault();
+    global.notifier.fermerEclair();
+
+    return true;
   }
 
   async function surScan(charge) {
@@ -366,8 +582,10 @@
 
     // Les premiers caracteres du code ont pu tomber dans la zone montant :
     // on restitue la derniere valeur stable avant de traiter le code.
-    montantSaisi = montantStable;
-    afficherMontant();
+    if (!enSaisieDePrix()) {
+      montantSaisi = montantStable;
+      afficherMontant();
+    }
 
     element("caisse_dernier_code").textContent = charge.code;
 
@@ -399,7 +617,15 @@
   }
 
   function surTouche(evenement) {
-    if (!active || !session || evenement.defaultPrevented) {
+    if (evenement.defaultPrevented) {
+      return;
+    }
+
+    if (eclairAbsorbeEntree(evenement)) {
+      return;
+    }
+
+    if (!active || !session) {
       return;
     }
 
@@ -415,7 +641,19 @@
 
     if (touche === "Enter") {
       evenement.preventDefault();
-      encaisser();
+
+      if (enSaisieDePrix()) {
+        totaliser();
+      } else {
+        encaisser();
+      }
+
+      return;
+    }
+
+    if (touche === "+" && mode === "manuel") {
+      evenement.preventDefault();
+      ajouterArticleLibre();
       return;
     }
 
@@ -428,7 +666,7 @@
 
     if (touche === "Backspace") {
       evenement.preventDefault();
-      retirerDuMontant();
+      retirerDuTampon();
       return;
     }
 
@@ -445,12 +683,12 @@
     dernierInstantTouche = instant;
 
     // Rafale trop rapide pour une main humaine : c est la douchette qui tape.
-    if (ecart < CADENCE_MACHINE_MS) {
+    if (ecart < CADENCE_MACHINE_MS && !enSaisieDePrix()) {
       return;
     }
 
     evenement.preventDefault();
-    ajouterAuMontant(estVirgule ? "," : touche);
+    ajouterAuTampon(estVirgule ? "," : touche);
   }
 
   async function rafraichirCatalogue() {
@@ -477,6 +715,21 @@
 
   function appliquerReglages(nouveaux) {
     reglages = nouveaux;
+
+    // Devise sans subdivision : la virgule disparait du pave, sinon le
+    // caissier tape un separateur que la caisse refuse.
+    global.format.definirDecimales(nouveaux.decimales);
+
+    const virgule = document.querySelector('[data-touche=","]');
+
+    if (virgule) {
+      virgule.hidden = !global.format.avecDecimales();
+    }
+
+    montantSaisi = normaliser(montantSaisi);
+    prixSaisi = normaliser(prixSaisi);
+    afficherMontant();
+    afficherPrix();
 
     element("caisse_etat_ticket").textContent =
       "ticket : " + (nouveaux.ticket_actif ? "actif" : "desactive");
@@ -525,11 +778,58 @@
     }
   }
 
+  function brancherChamps() {
+    const champPrix = element("caisse_prix");
+    const champMontant = element("caisse_montant");
+
+    champPrix.addEventListener("input", function () {
+      prixSaisi = normaliser(champPrix.value);
+      afficherPrix();
+      afficherTotaux();
+    });
+
+    champPrix.addEventListener("keydown", function (evenement) {
+      if (eclairAbsorbeEntree(evenement)) {
+        return;
+      }
+
+      if (evenement.key === "+") {
+        evenement.preventDefault();
+        ajouterArticleLibre();
+        return;
+      }
+
+      if (evenement.key === "Enter") {
+        evenement.preventDefault();
+        totaliser();
+      }
+    });
+
+    champMontant.addEventListener("input", function () {
+      montantSaisi = normaliser(champMontant.value);
+      montantStable = montantSaisi;
+      afficherMontant();
+      afficherTotaux();
+    });
+
+    champMontant.addEventListener("keydown", function (evenement) {
+      if (eclairAbsorbeEntree(evenement)) {
+        return;
+      }
+
+      if (evenement.key === "Enter") {
+        evenement.preventDefault();
+        encaisser();
+      }
+    });
+  }
+
   function initialiser() {
     element("caisse_etat_ticket").addEventListener("click", basculerTicket);
     element("caisse_recherche").addEventListener("input", afficherGrille);
     element("caisse_filtre_rayon").addEventListener("change", afficherGrille);
     element("caisse_encaisser").addEventListener("click", encaisser);
+    element("caisse_ajouter_manuel").addEventListener("click", ajouterArticleLibre);
     element("caisse_annuler").addEventListener("click", function () {
       viderPanier();
       global.notifier.neutre("Vente annulee.");
@@ -541,24 +841,35 @@
       element("caisse_ticket_panneau").hidden = true;
     });
 
+    document.querySelectorAll("[data-mode]").forEach(function (noeud) {
+      noeud.addEventListener("click", function () {
+        appliquerMode(noeud.dataset.mode);
+      });
+    });
+
     document.querySelectorAll("[data-touche]").forEach(function (touche) {
       touche.addEventListener("click", function () {
         const valeur = touche.dataset.touche;
 
         if (valeur === "effacer") {
-          effacerMontant();
+          effacerTampon();
         } else if (valeur === "retour") {
-          retirerDuMontant();
+          retirerDuTampon();
         } else if (valeur === "exact") {
-          montantExact();
+          if (enSaisieDePrix()) {
+            totaliser();
+          } else {
+            montantExact();
+          }
         } else {
-          ajouterAuMontant(valeur);
+          ajouterAuTampon(valeur);
         }
       });
     });
 
+    brancherChamps();
     document.addEventListener("keydown", surTouche);
-    afficherMontant();
+    appliquerMode("scan");
     afficherPanier();
   }
 

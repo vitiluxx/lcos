@@ -11,8 +11,8 @@
   }
 
   .entete,
-  .onglets,
   .notifications,
+  .zone_eclair,
   [data-impression="non"] {
     display: none !important;
   }

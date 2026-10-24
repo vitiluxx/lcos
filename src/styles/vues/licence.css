@@ -1,0 +1,49 @@
+/*
+ * Ecran du droit d usage. Il sert deux fois : en acces courant depuis le
+ * parametrage, et en ecran unique quand l essai est epuise. Dans ce second
+ * cas, c est la seule chose que le caissier voit, donc tout doit tenir sans
+ * defilement et se lire de loin.
+ */
+.vue_licence {
+  display: grid;
+  justify-content: center;
+}
+
+.vue_licence__cadre {
+  width: min(640px, 100%);
+  display: grid;
+  gap: var(--espace_4);
+}
+
+/* Empreinte du poste et cle de licence : du texte a recopier, donc en police
+ * a espacement fixe et selectionnable a la souris. */
+.licence__poste {
+  font-family: var(--police_chiffre);
+  letter-spacing: 0.04em;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.champ__zone {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--police_chiffre);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Badge d essai de l entete : cliquable, donc dessine comme un bouton nu. */
+.entete__licence {
+  border-style: solid;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.entete__licence:hover {
+  border-color: var(--couleur_accent);
+  color: var(--couleur_accent);
+}

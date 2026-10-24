@@ -1,10 +1,15 @@
 (function (global) {
   "use strict";
 
-  // Le texte part dans une zone unique que la feuille d impression est seule
-  // a rendre visible : la sortie papier est exactement le texte verifie cote
-  // Rust, sans mise en page du navigateur.
-  function imprimer(texte) {
+  // Trois voies possibles :
+  //   - navigateur : la webview ouvre la fenetre d impression Windows ;
+  //   - systeme    : le noyau Rust envoie le texte au spouleur, sans dialogue ;
+  //   - escpos     : le noyau Rust envoie les octets ESC/POS a la thermique.
+  // La voie retenue vient des reglages ; en cas d echec on retombe toujours
+  // sur la fenetre d impression plutot que de perdre le ticket.
+  let voie = "navigateur";
+
+  function imprimerParNavigateur(texte) {
     const zone = document.getElementById("zone_impression");
 
     if (!zone) {
@@ -17,7 +22,33 @@
     global.print();
   }
 
+  async function imprimer(texte) {
+    const contenu = String(texte || "");
+
+    if (voie === "navigateur") {
+      imprimerParNavigateur(contenu);
+      return;
+    }
+
+    try {
+      const imprimante = await global.pont.appeler("imprimer_ticket", { texte: contenu });
+
+      global.notifier.neutre("Ticket envoye a " + imprimante + ".");
+    } catch (incident) {
+      global.notifier.incident(incident);
+      imprimerParNavigateur(contenu);
+    }
+  }
+
+  function appliquerVoie(mode) {
+    voie = mode === "systeme" || mode === "escpos" ? mode : "navigateur";
+  }
+
   global.impression = {
-    imprimer: imprimer
+    imprimer: imprimer,
+    appliquerVoie: appliquerVoie,
+    voie: function () {
+      return voie;
+    }
   };
 })(window);

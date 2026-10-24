@@ -9,6 +9,7 @@
   --couleur_succes: #1f7a4d;
   --couleur_attente: #8a6a16;
   --couleur_alerte: #a62828;
+  --couleur_information: #1d4ed8;
 
   --espace_1: 4px;
   --espace_2: 8px;
@@ -36,6 +37,7 @@
     --couleur_succes: #4bbf85;
     --couleur_attente: #d6ac4a;
     --couleur_alerte: #e4696b;
+    --couleur_information: #74a4ff;
   }
 }
 
@@ -43,6 +45,15 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/*
+ * Les vues sont masquees par l attribut hidden. Les classes de vue portent
+ * display: grid, qui bat la regle par defaut du navigateur : sans ce !important
+ * les sections restent empilees et l onglet semble fige.
+ */
+[hidden] {
+  display: none !important;
 }
 
 html,
@@ -78,8 +89,13 @@ ul {
   list-style: none;
 }
 
+/*
+ * La barre d onglets a disparu de la page : la navigation vit dans l entete.
+ * Les marges du contenu sont serrees d autant, pour que la calculatrice de la
+ * caisse tienne a l ecran sans defilement.
+ */
 .contenu {
   flex: 1;
   overflow-y: auto;
-  padding: var(--espace_6);
+  padding: var(--espace_4) var(--espace_5);
 }

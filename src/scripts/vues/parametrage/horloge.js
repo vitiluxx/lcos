@@ -10,6 +10,8 @@
   }
 
   async function rafraichir() {
+    global.reglageAdministrateur.rafraichir();
+
     try {
       appliquer(await global.pont.appeler("recuperer_horloge"));
     } catch (incident) {
@@ -48,6 +50,7 @@
   function initialiser() {
     element("horloge_appliquer").addEventListener("click", appliquerReglage);
     element("horloge_panneau").addEventListener("click", ouvrirPanneauWindows);
+    global.reglageAdministrateur.initialiser();
   }
 
   global.reglageHorloge = {

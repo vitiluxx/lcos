@@ -7,6 +7,8 @@ use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::{ROLE_CAISSIER, ROLE_GERANT};
 use crate::securite::{Limiteur, RegistreJetons};
 
+use super::licence;
+
 #[derive(Serialize)]
 pub struct EtatSession {
     pub ouverte: bool,
@@ -35,6 +37,10 @@ pub fn ouvrir_session_caissier(
 ) -> Resultat<sessions::SessionCaisse> {
     let cible = format!("caissier:{caissier}");
     limiteur.verifier(&cible)?;
+
+    // Pas de droit d usage, pas de journee de caisse : la fermeture commence
+    // des l ouverture de session, avant meme le premier article.
+    depot.executer(licence::exiger_active)?;
 
     let fond_centimes = match fond {
         Some(saisie) if !saisie.trim().is_empty() => monnaie::analyser(&saisie)?,

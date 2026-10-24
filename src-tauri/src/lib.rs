@@ -1,7 +1,10 @@
 mod commandes;
 mod depot;
-mod domaine;
-mod erreur;
+// Rendus publics pour l outil en ligne de commande des licences, qui partage
+// le format et la verification avec le logiciel lui-meme : une licence emise
+// est relue par le meme code que celui qui la validera sur la caisse.
+pub mod domaine;
+pub mod erreur;
 mod securite;
 
 use tauri::Manager;
@@ -62,10 +65,25 @@ pub fn executer() {
             commandes::reglages::recuperer_reglages,
             commandes::reglages::enregistrer_reglages,
             commandes::reglages::basculer_ticket,
+            commandes::reglages::basculer_impression_recu,
             commandes::peripheriques::recuperer_reglages_scanner,
             commandes::peripheriques::enregistrer_reglages_scanner,
             commandes::peripheriques::enregistrer_detection_scanner,
-            commandes::peripheriques::analyser_code_barres
+            commandes::peripheriques::analyser_code_barres,
+            commandes::impression::recuperer_reglages_impression,
+            commandes::impression::detecter_imprimantes,
+            commandes::impression::enregistrer_reglages_impression,
+            commandes::impression::imprimer_ticket,
+            commandes::impression::tester_impression,
+            commandes::administration::recuperer_etat_administrateur,
+            commandes::administration::activer_lancement_administrateur,
+            commandes::administration::desactiver_lancement_administrateur,
+            commandes::licence::recuperer_etat_licence,
+            commandes::licence::activer_licence,
+            commandes::licence::retirer_licence,
+            commandes::transfert::recuperer_etat_transfert,
+            commandes::transfert::exporter_sauvegarde,
+            commandes::transfert::importer_sauvegarde
         ])
         .run(tauri::generate_context!())
         .expect("echec du demarrage de LCOS");

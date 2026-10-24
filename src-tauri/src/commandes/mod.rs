@@ -1,10 +1,14 @@
+pub mod administration;
 pub mod authentification;
 pub mod catalogue;
 pub mod comptes;
 pub mod horloge;
+pub mod impression;
+pub mod licence;
 pub mod peripheriques;
 pub mod rapports;
 pub mod reglages;
 pub mod sessions;
 pub mod systeme;
+pub mod transfert;
 pub mod ventes;

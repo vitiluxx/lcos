@@ -10,6 +10,7 @@ mod parcours_tests;
 pub mod rapports;
 pub mod sessions;
 pub mod traduction;
+pub mod transfert;
 pub mod ventes;
 
 pub use connexion::Depot;

@@ -9,7 +9,8 @@ pub const LIMITE_JOURNAL: i64 = 200;
 
 #[derive(Debug)]
 pub struct LigneAEnregistrer {
-    pub produit: i64,
+    /// Absent pour un article saisi a la main : il n a pas de fiche catalogue.
+    pub produit: Option<i64>,
     pub libelle: String,
     pub code_barres: Option<String>,
     pub rayon_libelle: String,

@@ -16,23 +16,6 @@
   gap: var(--espace_4);
 }
 
-.caisse__entete {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--espace_3);
-  flex-wrap: wrap;
-}
-
-.caisse__entete .badge {
-  cursor: pointer;
-}
-
-.caisse__titre {
-  font-size: 18px;
-  font-weight: 600;
-}
-
 .caisse__scan {
   display: flex;
   align-items: center;
@@ -207,4 +190,83 @@
   max-width: 460px;
   margin: var(--espace_6) auto;
   text-align: center;
+}
+
+/*
+ * Code couleur de la somme recue : rouge en dessous du total, bleu au compte
+ * juste, vert au dessus. Le caissier lit l etat sans lire le chiffre.
+ */
+.paiement__montant--insuffisant {
+  border-color: var(--couleur_alerte);
+  color: var(--couleur_alerte);
+}
+
+.paiement__montant--exact {
+  border-color: var(--couleur_information);
+  color: var(--couleur_information);
+}
+
+.paiement__montant--rendu {
+  border-color: var(--couleur_succes);
+  color: var(--couleur_succes);
+}
+
+.paiement__rendu--exact {
+  background: transparent;
+  border: 1px solid var(--couleur_information);
+}
+
+.paiement__rendu--exact .paiement__rendu_valeur {
+  color: var(--couleur_information);
+}
+
+.paiement__rendu--rendu .paiement__rendu_valeur {
+  color: var(--couleur_succes);
+}
+
+.paiement__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espace_2);
+}
+
+.bouton_mode {
+  padding: var(--espace_3) 0;
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte_faible);
+  font-family: var(--police_systeme);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton_mode:hover {
+  border-color: var(--couleur_accent);
+}
+
+.bouton_mode--actif {
+  border-color: var(--couleur_accent);
+  background: var(--couleur_accent_faible);
+  color: var(--couleur_accent);
+}
+
+.paiement__pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace_3);
+  flex-wrap: wrap;
+}
+
+.paiement__pied .badge {
+  cursor: pointer;
+}
+
+.paiement__indice {
+  flex: 1 1 160px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--couleur_texte_faible);
 }

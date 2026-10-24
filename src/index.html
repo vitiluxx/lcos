@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles/polices.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/composants/entete.css" />
-    <link rel="stylesheet" href="styles/composants/onglets.css" />
+    <link rel="stylesheet" href="styles/composants/menu.css" />
     <link rel="stylesheet" href="styles/composants/carte.css" />
     <link rel="stylesheet" href="styles/composants/badge.css" />
     <link rel="stylesheet" href="styles/composants/bouton.css" />
@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles/composants/notification.css" />
     <link rel="stylesheet" href="styles/vues/caisse.css" />
     <link rel="stylesheet" href="styles/vues/session.css" />
+    <link rel="stylesheet" href="styles/vues/licence.css" />
     <link rel="stylesheet" href="styles/vues/parametrage.css" />
     <link rel="stylesheet" href="styles/vues/rapports.css" />
     <link rel="stylesheet" href="styles/vues/diagnostic.css" />
@@ -30,26 +31,59 @@
         <span class="entete__sous_titre" id="entete_commerce">Logiciel de caisse open source</span>
       </div>
       <div class="entete__version">
+        <button class="badge badge--attente entete__licence" id="etiquette_licence" type="button" hidden>
+          essai
+        </button>
         <span class="badge badge--neutre" id="etiquette_horloge">--/--/---- --:--</span>
         <span class="badge badge--attente" id="etiquette_session">session fermee</span>
         <span class="badge badge--neutre" id="etiquette_version">version --</span>
+
+        <div class="menu_vues" id="menu_vues_racine">
+          <button
+            class="menu_vues__bascule"
+            id="menu_bascule"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-controls="menu_liste"
+            title="Menu de navigation"
+          >
+            <span class="menu_vues__barres" aria-hidden="true"></span>
+            <span class="menu_vues__libelle" id="menu_vue_courante">Caisse</span>
+          </button>
+
+          <div class="menu_vues__liste" id="menu_liste" role="menu" hidden>
+            <button
+              class="menu_vues__element menu_vues__element--actif"
+              data-vue="caisse"
+              role="menuitem"
+              type="button"
+            >
+              Caisse
+            </button>
+            <button class="menu_vues__element" data-vue="session" role="menuitem" type="button">
+              Session
+            </button>
+            <button class="menu_vues__element" data-vue="parametrage" role="menuitem" type="button">
+              Parametrage
+            </button>
+            <button
+              class="menu_vues__element"
+              data-vue="licence"
+              role="menuitem"
+              type="button"
+              hidden
+            >
+              Licence
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
-    <nav class="onglets" aria-label="Navigation principale">
-      <button class="onglets__bouton onglets__bouton--actif" data-vue="caisse" type="button">
-        Caisse
-      </button>
-      <button class="onglets__bouton" data-vue="session" type="button">Session</button>
-      <button class="onglets__bouton" data-vue="parametrage" type="button">Parametrage</button>
-      <button class="onglets__bouton" data-vue="rapports" type="button">Rapports</button>
-      <button class="onglets__bouton" data-vue="peripheriques" type="button">Peripheriques</button>
-      <button class="onglets__bouton" data-vue="diagnostic" type="button">Diagnostic</button>
-    </nav>
-
     <main class="contenu">
       <!-- ================= CAISSE ================= -->
-      <section data-section="caisse" aria-labelledby="titre_caisse">
+      <section data-section="caisse" aria-label="Encaissement">
         <div class="panneau caisse__verrou" id="caisse_verrou" hidden>
           <h1 class="panneau__titre">Aucune session de caisse ouverte</h1>
           <p class="panneau__intro">
@@ -62,11 +96,6 @@
 
         <div class="vue_caisse" id="caisse_corps" hidden>
           <div class="caisse__colonne">
-            <div class="caisse__entete">
-              <h1 class="caisse__titre" id="titre_caisse">Encaissement</h1>
-              <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
-            </div>
-
             <div class="caisse__scan">
               <span>Dernier code lu</span>
               <span class="caisse__scan_code" id="caisse_dernier_code">en attente de scan</span>
@@ -106,8 +135,23 @@
           <div class="caisse__colonne">
             <div class="panneau paiement">
               <div class="paiement__total">
-                <span class="paiement__total_libelle">Total a payer</span>
+                <span class="paiement__total_libelle" id="caisse_total_libelle">Total a payer</span>
                 <span class="paiement__total_valeur" id="caisse_total">0,00</span>
+              </div>
+
+              <div class="champ" id="caisse_bloc_prix" data-saisie="clavier" hidden>
+                <label class="champ__etiquette" for="caisse_prix">Prix de l article</label>
+                <input
+                  class="paiement__montant"
+                  id="caisse_prix"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0,00"
+                />
+                <span class="champ__aide">
+                  Touche + pour ajouter l article, Entree pour totaliser.
+                </span>
               </div>
 
               <div class="champ">
@@ -116,13 +160,14 @@
                   class="paiement__montant"
                   id="caisse_montant"
                   type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
                   value="0,00"
-                  readonly
                 />
               </div>
 
               <div class="paiement__rendu" id="caisse_rendu_cadre">
-                <span class="paiement__total_libelle">A rendre</span>
+                <span class="paiement__total_libelle" id="caisse_rendu_libelle">A rendre</span>
                 <span class="paiement__rendu_valeur" id="caisse_rendu">0,00</span>
               </div>
 
@@ -146,17 +191,37 @@
                 <button class="pave__touche" data-touche="," type="button">,</button>
               </div>
 
+              <div class="paiement__modes" role="group" aria-label="Mode de saisie">
+                <button
+                  class="bouton_mode bouton_mode--actif"
+                  id="caisse_mode_scan"
+                  data-mode="scan"
+                  type="button"
+                >
+                  Mode scan
+                </button>
+                <button class="bouton_mode" id="caisse_mode_manuel" data-mode="manuel" type="button">
+                  Mode manuel
+                </button>
+              </div>
+
+              <button class="bouton" id="caisse_ajouter_manuel" type="button" hidden>
+                + Ajouter l article
+              </button>
+
+              <div class="paiement__pied">
+                <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
+                <span class="paiement__indice" id="caisse_indice">
+                  Scanne les articles puis tape la somme recue.
+                </span>
+              </div>
+
               <button class="bouton bouton--principal" id="caisse_encaisser" type="button">
                 Encaisser (Entree)
               </button>
               <button class="bouton bouton--danger" id="caisse_annuler" type="button">
                 Annuler la vente (Echap)
               </button>
-
-              <p class="caisse__aide">
-                Scanne les articles, tape la somme recue au clavier puis valide avec Entree.
-                Le reliquat a remettre s affiche en direct.
-              </p>
             </div>
 
             <div class="panneau" id="caisse_ticket_panneau" hidden>
@@ -168,6 +233,69 @@
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- ================= LICENCE ================= -->
+      <section class="vue_licence" data-section="licence" data-saisie="clavier" hidden>
+        <div class="panneau panneau--verrou vue_licence__cadre">
+          <div class="parametrage__entete">
+            <h1 class="panneau__titre" id="licence_titre">Licence de LCOS</h1>
+            <span class="badge badge--attente" id="licence_badge">verification...</span>
+          </div>
+
+          <p class="panneau__intro" id="licence_message">verification du droit d usage...</p>
+
+          <div class="session__etat">
+            <div>
+              <div class="session__mesure_libelle">Titulaire</div>
+              <div class="session__mesure_valeur" id="licence_titulaire">--</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Numero</div>
+              <div class="session__mesure_valeur" id="licence_numero">--</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Validite</div>
+              <div class="session__mesure_valeur" id="licence_validite">--</div>
+            </div>
+            <div>
+              <div class="session__mesure_libelle">Empreinte de ce poste</div>
+              <div class="session__mesure_valeur licence__poste" id="licence_poste">--</div>
+            </div>
+          </div>
+
+          <div class="formulaire">
+            <div class="champ">
+              <label class="champ__etiquette" for="licence_cle">Cle de licence</label>
+              <textarea
+                class="champ__saisie champ__zone"
+                id="licence_cle"
+                rows="4"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="LCOS1...."
+              ></textarea>
+              <span class="champ__aide">
+                Colle la licence recue de l editeur. Les espaces et les retours a la
+                ligne n ont pas d importance.
+              </span>
+            </div>
+            <div class="formulaire__actions">
+              <button class="bouton bouton--principal" id="licence_activer" type="button">
+                Activer la licence
+              </button>
+              <button class="bouton bouton--danger" id="licence_retirer" type="button" hidden>
+                Retirer la licence
+              </button>
+            </div>
+          </div>
+
+          <p class="champ__aide">
+            Pour obtenir une licence, donne a l editeur le numero du commerce et
+            l empreinte de ce poste affichee ci-dessus. Rien n est efface en attendant :
+            la programmation et les ventes restent en place.
+          </p>
         </div>
       </section>
 
@@ -371,6 +499,21 @@
             <button class="sous_onglets__bouton" data-reglage="securite" type="button">
               Code du gerant
             </button>
+            <button class="sous_onglets__bouton" data-reglage="licence" type="button">
+              Licence
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="transfert" type="button">
+              Export et import
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="rapports" type="button">
+              Rapports
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="peripheriques" type="button">
+              Peripheriques
+            </button>
+            <button class="sous_onglets__bouton" data-reglage="diagnostic" type="button">
+              Diagnostic
+            </button>
           </div>
 
           <!-- commerce -->
@@ -383,10 +526,61 @@
                     <label class="champ__etiquette" for="commerce_nom">Nom du commerce</label>
                     <input class="champ__saisie" id="commerce_nom" type="text" autocomplete="off" />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <h2 class="panneau__titre">Devise et decimales</h2>
+              <p class="panneau__intro">
+                Le franc CFA ne se compte pas en centimes. Devise sans subdivision :
+                desactive les valeurs apres la virgule et toute la caisse passe en
+                nombres entiers, ecran comme ticket.
+              </p>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
                   <div class="champ">
                     <label class="champ__etiquette" for="commerce_devise">Devise</label>
                     <input class="champ__saisie" id="commerce_devise" type="text" maxlength="8" autocomplete="off" />
+                    <span class="champ__aide">EUR, FCFA, XOF, USD...</span>
                   </div>
+                  <div class="champ">
+                    <label class="champ__etiquette" for="commerce_decimales">
+                      Valeurs apres la virgule
+                    </label>
+                    <select class="champ__liste" id="commerce_decimales">
+                      <option value="2">Activees : 2 decimales (1 500,00)</option>
+                      <option value="0">Desactivees : entiers pleins (1 500)</option>
+                    </select>
+                    <span class="champ__aide" id="commerce_decimales_aide">
+                      Propose automatiquement selon la devise saisie.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <div class="parametrage__entete">
+                <h2 class="panneau__titre">Impression des recus</h2>
+                <span class="badge badge--succes" id="badge_impression_recu">activee</span>
+              </div>
+              <p class="panneau__intro">
+                Desactivee, aucune feuille ne sort apres une vente : seule une
+                confirmation apparait une seconde au centre de l ecran. Le rapport Z
+                n est pas concerne, il s imprime toujours.
+              </p>
+              <div class="formulaire">
+                <div class="champ champ--bascule">
+                  <input id="impression_recu" type="checkbox" />
+                  <label class="champ__etiquette" for="impression_recu">
+                    Imprimer le recu apres chaque vente
+                  </label>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="impression_recu_appliquer" type="button">
+                    Appliquer
+                  </button>
                 </div>
               </div>
             </div>
@@ -397,12 +591,6 @@
                 <div class="champ champ--bascule">
                   <input id="ticket_actif" type="checkbox" />
                   <label class="champ__etiquette" for="ticket_actif">Ticket active</label>
-                </div>
-                <div class="champ champ--bascule">
-                  <input id="ticket_impression_auto" type="checkbox" />
-                  <label class="champ__etiquette" for="ticket_impression_auto">
-                    Impression automatique apres chaque vente
-                  </label>
                 </div>
                 <div class="formulaire__ligne">
                   <div class="champ">
@@ -472,6 +660,28 @@
                     Ouvrir le panneau Windows
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <div class="parametrage__entete">
+                <h2 class="panneau__titre">Droits administrateur de LCOS</h2>
+                <span class="badge badge--attente" id="badge_administrateur">non eleve</span>
+              </div>
+              <p class="panneau__intro">
+                Windows refuse le reglage de l horloge a un programme ordinaire. Une tache
+                planifiee au niveau le plus eleve supprime la demande d autorisation a
+                chaque demarrage : LCOS se lance alors deja administrateur par le raccourci
+                du bureau.
+              </p>
+              <p class="champ__aide" id="administrateur_detail">verification...</p>
+              <div class="formulaire__actions">
+                <button class="bouton bouton--principal" id="administrateur_activer" type="button">
+                  Autoriser LCOS en administrateur
+                </button>
+                <button class="bouton bouton--danger" id="administrateur_desactiver" type="button">
+                  Retirer l autorisation
+                </button>
               </div>
             </div>
           </div>
@@ -622,15 +832,13 @@
                         class="champ__saisie champ__saisie--chiffre"
                         id="produit_stock"
                         type="text"
-                        inputmode="numeric"
-                        value="0"
+                        value="NON"
                         autocomplete="off"
                       />
+                      <span class="champ__aide">
+                        NON : vente sans decompte de stock. Un nombre active le suivi.
+                      </span>
                     </div>
-                  </div>
-                  <div class="champ champ--bascule">
-                    <input id="produit_suivi" type="checkbox" checked />
-                    <label class="champ__etiquette" for="produit_suivi">Suivre le stock</label>
                   </div>
                   <div class="champ champ--bascule">
                     <input id="produit_actif" type="checkbox" checked />
@@ -741,23 +949,164 @@
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- ================= RAPPORTS ================= -->
-      <section class="vue_rapports" data-section="rapports" aria-labelledby="titre_rapports" hidden>
-        <div class="panneau panneau--verrou" id="rapports_verrou">
-          <h1 class="panneau__titre">Reserve au gerant</h1>
-          <p class="panneau__intro">
-            Deverrouille le parametrage avec le code du gerant pour consulter les ventes et
-            editer le rapport Z.
-          </p>
-          <button class="bouton bouton--principal" id="rapports_aller_parametrage" type="button">
-            Saisir le code du gerant
-          </button>
-        </div>
+          <!-- licence -->
+          <div class="parametrage__section" data-reglage_section="licence" hidden>
+            <div class="panneau">
+              <div class="parametrage__entete">
+                <h2 class="panneau__titre">Droit d usage de ce poste</h2>
+                <span class="badge badge--attente" id="reglage_licence_badge">--</span>
+              </div>
+              <p class="panneau__intro" id="reglage_licence_message">--</p>
 
-        <div id="rapports_corps" hidden>
+              <div class="session__etat">
+                <div>
+                  <div class="session__mesure_libelle">Titulaire</div>
+                  <div class="session__mesure_valeur" id="reglage_licence_titulaire">--</div>
+                </div>
+                <div>
+                  <div class="session__mesure_libelle">Numero</div>
+                  <div class="session__mesure_valeur" id="reglage_licence_numero">--</div>
+                </div>
+                <div>
+                  <div class="session__mesure_libelle">Validite</div>
+                  <div class="session__mesure_valeur" id="reglage_licence_validite">--</div>
+                </div>
+                <div>
+                  <div class="session__mesure_libelle">Empreinte de ce poste</div>
+                  <div class="session__mesure_valeur licence__poste" id="reglage_licence_poste">--</div>
+                </div>
+              </div>
+
+              <p class="champ__aide">
+                L empreinte du poste est a dicter a l editeur pour une licence liee a
+                cette seule caisse. Une licence sans poste fonctionne sur n importe
+                quelle installation.
+              </p>
+
+              <div class="formulaire__actions">
+                <button class="bouton" id="reglage_licence_aller" type="button">
+                  Inserer ou remplacer la licence
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- export et import -->
+          <div class="parametrage__section" data-reglage_section="transfert" data-saisie="clavier" hidden>
+            <div class="panneau">
+              <h2 class="panneau__titre">Ce que contient cette caisse</h2>
+              <p class="panneau__intro">
+                Un fichier d export recopie la programmation d une caisse sur une autre :
+                reglages, comptes, rayons, produits. Avec les ventes, c est une
+                sauvegarde complete, a ne remettre que sur la meme caisse.
+              </p>
+
+              <div class="grille_cartes">
+                <article class="carte">
+                  <h3 class="carte__titre">Produits</h3>
+                  <p class="carte__valeur" id="transfert_produits">--</p>
+                  <p class="carte__detail">prix et codes-barres</p>
+                </article>
+                <article class="carte">
+                  <h3 class="carte__titre">Rayons</h3>
+                  <p class="carte__valeur" id="transfert_rayons">--</p>
+                  <p class="carte__detail">familles de produits</p>
+                </article>
+                <article class="carte">
+                  <h3 class="carte__titre">Comptes</h3>
+                  <p class="carte__valeur" id="transfert_comptes">--</p>
+                  <p class="carte__detail">gerant et caissiers</p>
+                </article>
+                <article class="carte">
+                  <h3 class="carte__titre">Reglages</h3>
+                  <p class="carte__valeur" id="transfert_parametres">--</p>
+                  <p class="carte__detail">devise, ticket, imprimante</p>
+                </article>
+                <article class="carte">
+                  <h3 class="carte__titre">Ventes en memoire</h3>
+                  <p class="carte__valeur" id="transfert_ventes">--</p>
+                  <p class="carte__detail">effacees par le rapport Z</p>
+                </article>
+                <article class="carte">
+                  <h3 class="carte__titre">Rapports Z archives</h3>
+                  <p class="carte__valeur" id="transfert_rapports">--</p>
+                  <p class="carte__detail">historique des clotures</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <h2 class="panneau__titre">Exporter</h2>
+              <p class="panneau__intro">
+                Le fichier est ecrit dans le dossier indique. Mets la lettre de la cle
+                USB pour exporter directement dessus.
+              </p>
+              <div class="formulaire">
+                <div class="formulaire__ligne">
+                  <div class="champ">
+                    <label class="champ__etiquette" for="transfert_dossier">Dossier</label>
+                    <input class="champ__saisie" id="transfert_dossier" type="text" autocomplete="off" />
+                    <span class="champ__aide" id="transfert_dossier_aide">dossier par defaut</span>
+                  </div>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="transfert_exporter_parametrage" type="button">
+                    Exporter le parametrage seul
+                  </button>
+                  <button class="bouton" id="transfert_exporter_complet" type="button">
+                    Exporter avec les ventes
+                  </button>
+                  <button class="bouton" id="transfert_relire" type="button">Relire le dossier</button>
+                </div>
+                <p class="champ__aide" id="transfert_dernier_export">aucun export depuis le demarrage</p>
+              </div>
+            </div>
+
+            <div class="panneau">
+              <h2 class="panneau__titre">Importer</h2>
+              <p class="panneau__intro">
+                L import <strong>remplace</strong> ce que le fichier contient : les
+                reglages, les comptes, les rayons et les produits de cette caisse sont
+                effaces et remplaces par ceux du fichier.
+              </p>
+
+              <p class="avertissement">
+                Le fichier porte les codes secrets scelles des comptes. Apres un import,
+                le code du gerant est celui du fichier, pas celui de cette caisse.
+                Conserve le fichier comme une clef.
+              </p>
+
+              <div class="formulaire">
+                <div class="champ">
+                  <label class="champ__etiquette" for="transfert_fichier">Fichier du dossier</label>
+                  <select class="champ__liste" id="transfert_fichier"></select>
+                  <span class="champ__aide" id="transfert_fichier_aide">aucun fichier lu</span>
+                </div>
+                <div class="champ champ--bascule">
+                  <input id="transfert_avec_donnees" type="checkbox" />
+                  <label class="champ__etiquette" for="transfert_avec_donnees">
+                    Importer aussi les ventes, sessions, compteurs et rapports Z
+                  </label>
+                </div>
+                <div class="champ champ--bascule">
+                  <input id="transfert_confirmation" type="checkbox" />
+                  <label class="champ__etiquette" for="transfert_confirmation">
+                    Je confirme le remplacement du contenu de cette caisse
+                  </label>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--danger" id="transfert_importer" type="button" disabled>
+                    Importer ce fichier
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- rapports -->
+          <div class="parametrage__section" data-reglage_section="rapports" hidden>
+            <div class="vue_rapports" id="rapports_corps" hidden>
           <h1 class="panneau__titre" id="titre_rapports">Ventes et rapport Z</h1>
 
           <div class="rapports__mesures">
@@ -882,11 +1231,11 @@
               </table>
             </div>
           </div>
-        </div>
-      </section>
+            </div>
+          </div>
 
-      <!-- ================= PERIPHERIQUES ================= -->
-      <section class="vue_peripheriques" data-section="peripheriques" aria-labelledby="titre_peripheriques" hidden>
+          <!-- peripheriques -->
+          <div class="parametrage__section" data-reglage_section="peripheriques" data-saisie="clavier" hidden>
         <div class="vue_peripheriques__entete">
           <div>
             <h1 class="vue_diagnostic__titre" id="titre_peripheriques">Douchette code-barres</h1>
@@ -949,10 +1298,74 @@
             acceptee et les mesures reelles du lecteur s affichent.
           </p>
         </div>
-      </section>
 
-      <!-- ================= DIAGNOSTIC ================= -->
-      <section class="vue_diagnostic" data-section="diagnostic" aria-labelledby="titre_diagnostic" hidden>
+        <div class="panneau" data-saisie="clavier">
+          <div class="vue_peripheriques__entete">
+            <div>
+              <h2 class="panneau__titre">Imprimante du ticket</h2>
+              <p class="panneau__intro">
+                L imprimante integree est vue par Windows comme une imprimante ordinaire.
+                Detecte-la, choisis-la, puis lance un test sur le rouleau.
+              </p>
+            </div>
+            <span class="badge badge--attente" id="badge_imprimante">en attente</span>
+          </div>
+
+          <div class="formulaire">
+            <div class="formulaire__ligne">
+              <div class="champ">
+                <label class="champ__etiquette" for="imprimante_nom">Imprimante retenue</label>
+                <select class="champ__liste" id="imprimante_nom"></select>
+                <span class="champ__aide" id="imprimante_etat">aucune detection</span>
+              </div>
+              <div class="champ">
+                <label class="champ__etiquette" for="imprimante_mode">Voie d impression</label>
+                <select class="champ__liste" id="imprimante_mode">
+                  <option value="navigateur">Fenetre d impression Windows</option>
+                  <option value="systeme">Envoi direct : texte</option>
+                  <option value="escpos">Envoi direct : ESC/POS thermique 58 mm</option>
+                </select>
+                <span class="champ__aide">
+                  ESC/POS : coupe du papier, tiroir-caisse et gras. A retenir pour
+                  l imprimante integree de la caisse.
+                </span>
+              </div>
+            </div>
+
+            <div class="formulaire__ligne" id="imprimante_options_escpos">
+              <div class="champ champ--bascule">
+                <input id="imprimante_coupe" type="checkbox" />
+                <label class="champ__etiquette" for="imprimante_coupe">
+                  Couper le papier en fin de ticket
+                </label>
+              </div>
+              <div class="champ champ--bascule">
+                <input id="imprimante_tiroir" type="checkbox" />
+                <label class="champ__etiquette" for="imprimante_tiroir">
+                  Ouvrir le tiroir-caisse
+                </label>
+              </div>
+              <div class="champ champ--bascule">
+                <input id="imprimante_gras" type="checkbox" />
+                <label class="champ__etiquette" for="imprimante_gras">
+                  Entete et totaux en gras
+                </label>
+              </div>
+            </div>
+
+            <div class="formulaire__actions">
+              <button class="bouton" id="imprimante_detecter" type="button">Detecter</button>
+              <button class="bouton bouton--principal" id="imprimante_enregistrer" type="button">
+                Enregistrer
+              </button>
+              <button class="bouton" id="imprimante_tester" type="button">Test d impression</button>
+            </div>
+          </div>
+        </div>
+          </div>
+
+          <!-- diagnostic -->
+          <div class="parametrage__section" data-reglage_section="diagnostic" hidden>
         <h1 class="vue_diagnostic__titre" id="titre_diagnostic">Etat du socle</h1>
         <p class="vue_diagnostic__intro">
           Verification de l installation locale. Aucune connexion reseau n est utilisee.
@@ -1024,15 +1437,18 @@
           </li>
           <li class="liste_modules__element">
             <span class="liste_modules__nom">Imprimante thermique 58 mm (ESC/POS direct)</span>
-            <span class="badge badge--attente">a venir</span>
+            <span class="badge badge--succes">operationnel</span>
           </li>
         </ul>
 
         <p class="vue_diagnostic__erreur" id="zone_erreur" hidden></p>
+          </div>
+        </div>
       </section>
     </main>
 
     <div class="notifications" id="zone_notifications" aria-live="polite"></div>
+    <div class="zone_eclair" id="zone_eclair" aria-live="assertive"></div>
     <pre class="zone_impression" id="zone_impression"></pre>
 
     <script src="scripts/api/pont.js"></script>
@@ -1042,15 +1458,19 @@
     <script src="scripts/composants/impression.js"></script>
     <script src="scripts/peripheriques/scanner.js"></script>
     <script src="scripts/vues/diagnostic.js"></script>
+    <script src="scripts/vues/imprimante.js"></script>
     <script src="scripts/vues/peripheriques.js"></script>
+    <script src="scripts/vues/licence.js"></script>
     <script src="scripts/vues/caisse.js"></script>
     <script src="scripts/vues/session.js"></script>
     <script src="scripts/vues/parametrage/commerce.js"></script>
+    <script src="scripts/vues/parametrage/administrateur.js"></script>
     <script src="scripts/vues/parametrage/horloge.js"></script>
     <script src="scripts/vues/parametrage/caissiers.js"></script>
     <script src="scripts/vues/parametrage/rayons.js"></script>
     <script src="scripts/vues/parametrage/produits.js"></script>
     <script src="scripts/vues/parametrage/securite.js"></script>
+    <script src="scripts/vues/parametrage/transfert.js"></script>
     <script src="scripts/vues/parametrage.js"></script>
     <script src="scripts/vues/rapports.js"></script>
     <script src="scripts/application.js"></script>

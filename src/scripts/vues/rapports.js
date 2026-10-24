@@ -14,11 +14,10 @@
     return noeud;
   }
 
+  // Section du parametrage : on n y entre qu avec le code du gerant, le corps
+  // suit donc simplement l etat de l acces.
   function appliquerVisibilite() {
-    const ouvert = global.acces.actif();
-
-    element("rapports_verrou").hidden = ouvert;
-    element("rapports_corps").hidden = !ouvert;
+    element("rapports_corps").hidden = !global.acces.actif();
   }
 
   function afficherMesures(rapport) {
@@ -249,10 +248,6 @@
 
     element("rapports_imprimer").addEventListener("click", function () {
       global.impression.imprimer(texteAffiche);
-    });
-
-    element("rapports_aller_parametrage").addEventListener("click", function () {
-      global.application.allerA("parametrage");
     });
 
     global.acces.surChangement(appliquerVisibilite);

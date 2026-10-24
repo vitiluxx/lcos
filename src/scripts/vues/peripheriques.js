@@ -150,6 +150,7 @@
 
   function initialiser() {
     element("bouton_calibration").addEventListener("click", basculerCalibration);
+    global.vueImprimante.initialiser();
 
     global.scanner.surScan(surScan);
     global.scanner.surRejet(surRejet);
@@ -158,6 +159,10 @@
 
   global.vuePeripheriques = {
     initialiser: initialiser,
-    rafraichir: rafraichir
+    rafraichir: rafraichir,
+    entrer: function () {
+      rafraichir();
+      global.vueImprimante.rafraichir();
+    }
   };
 })(window);

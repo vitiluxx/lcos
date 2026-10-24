@@ -6,7 +6,7 @@ use crate::domaine::horodatage;
 use crate::erreur::Resultat;
 use crate::securite::jetons::{ROLE_CAISSIER, ROLE_GERANT};
 
-use super::reglages;
+use super::{licence, reglages};
 
 #[derive(Serialize)]
 pub struct EtatApplication {
@@ -30,6 +30,7 @@ pub struct EtatApplication {
     pub remises_a_zero: i64,
     pub horodatage: String,
     pub prete: bool,
+    pub licence: licence::EtatLicence,
 }
 
 #[tauri::command]
@@ -80,6 +81,7 @@ pub fn recuperer_etat_application(depot: State<Depot>) -> Resultat<EtatApplicati
                 .unwrap_or_default(),
             horodatage: horodatage::lisible(&maintenant),
             prete: gerant_configure && nombre_caissiers > 0 && nombre_produits > 0,
+            licence: licence::evaluer(connexion)?,
         })
     })?;
 

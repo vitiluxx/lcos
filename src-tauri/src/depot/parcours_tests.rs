@@ -6,7 +6,9 @@ use rusqlite::Connection;
 
 use crate::domaine::secret::Empreinte;
 
-use super::{catalogue, comptes, compteurs, migrations, parametres, rapports, sessions, ventes};
+use super::{
+    catalogue, comptes, compteurs, migrations, parametres, rapports, sessions, transfert, ventes,
+};
 
 const ROLE_GERANT: &str = "gerant";
 const ROLE_CAISSIER: &str = "caissier";
@@ -122,7 +124,7 @@ fn enregistre_une_vente_et_tient_les_totaux() {
     assert_eq!(numero, 1);
 
     let lignes = vec![ventes::LigneAEnregistrer {
-        produit,
+        produit: Some(produit),
         libelle: "Coca 33cl".to_string(),
         code_barres: Some("3017620422003".to_string()),
         rayon_libelle: "Boissons".to_string(),
@@ -216,7 +218,7 @@ fn la_remise_a_zero_efface_les_ventes_et_garde_la_programmation() {
                 nombre_articles: rang,
             },
             &[ventes::LigneAEnregistrer {
-                produit,
+                produit: Some(produit),
                 libelle: "Coca 33cl".to_string(),
                 code_barres: None,
                 rayon_libelle: "Boissons".to_string(),
@@ -247,6 +249,7 @@ fn la_remise_a_zero_efface_les_ventes_et_garde_la_programmation() {
         numero: numero_raz,
         nom_commerce: "Mon commerce".to_string(),
         devise: "EUR".to_string(),
+        decimales: crate::domaine::monnaie::DECIMALES_DEFAUT,
         genere_le: "24/10/2026 01:12".to_string(),
         debut_le: agregats.debut_le.clone(),
         fin_le: agregats.fin_le.clone(),
@@ -329,7 +332,7 @@ fn protege_un_caissier_qui_a_des_ventes() {
             nombre_articles: 1,
         },
         &[ventes::LigneAEnregistrer {
-            produit,
+            produit: Some(produit),
             libelle: "Coca 33cl".to_string(),
             code_barres: None,
             rayon_libelle: "Boissons".to_string(),
@@ -367,7 +370,7 @@ fn une_vente_supprimee_conserve_le_libelle_du_produit_efface() {
             nombre_articles: 1,
         },
         &[ventes::LigneAEnregistrer {
-            produit,
+            produit: Some(produit),
             libelle: "Coca 33cl".to_string(),
             code_barres: None,
             rayon_libelle: "Boissons".to_string(),
@@ -384,4 +387,148 @@ fn une_vente_supprimee_conserve_le_libelle_du_produit_efface() {
 
     assert_eq!(detail[0].libelle, "Coca 33cl");
     assert_eq!(detail[0].prix_centimes, 150);
+}
+
+/// Aller-retour par le fichier d export : ce qui sort de la base doit pouvoir
+/// y revenir a l identique, identifiants compris, sinon une ligne de vente
+/// perdrait son produit.
+#[test]
+fn exporte_puis_reimporte_le_parametrage_et_les_donnees() {
+    let connexion = base();
+
+    let gerant = comptes::creer(&connexion, "Patron", ROLE_GERANT, &empreinte_factice()).unwrap();
+    let caissier = comptes::creer(&connexion, "Ali", ROLE_CAISSIER, &empreinte_factice()).unwrap();
+    let produit = produit_vendable(&connexion, Some("3017620422003"), 150);
+    let session = sessions::ouvrir(&connexion, caissier, 1000).unwrap();
+
+    parametres::ecrire(&connexion, "nom_commerce", "Chez Ali").unwrap();
+    parametres::ecrire(&connexion, "imprimante_nom", "POS58 du poste").unwrap();
+
+    let numero = compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap();
+
+    let vente = ventes::enregistrer(
+        &connexion,
+        &ventes::VenteAEnregistrer {
+            numero_ticket: numero,
+            session,
+            caissier,
+            total_centimes: 300,
+            recu_centimes: 500,
+            rendu_centimes: 200,
+            nombre_articles: 2,
+        },
+        &[ventes::LigneAEnregistrer {
+            produit: Some(produit),
+            libelle: "Coca 33cl".to_string(),
+            code_barres: Some("3017620422003".to_string()),
+            rayon_libelle: "Boissons".to_string(),
+            prix_centimes: 150,
+            quantite: 2,
+            total_centimes: 300,
+        }],
+    )
+    .unwrap();
+
+    sessions::fermer(&connexion, session).unwrap();
+
+    let parametrage = transfert::lire_parametrage(&connexion).unwrap();
+    let donnees = transfert::lire_donnees(&connexion).unwrap();
+
+    // Le nom de l imprimante est propre au poste : il ne doit pas voyager.
+    assert!(parametrage
+        .parametres
+        .iter()
+        .any(|parametre| parametre.cle == "nom_commerce" && parametre.valeur == "Chez Ali"));
+    assert!(!parametrage
+        .parametres
+        .iter()
+        .any(|parametre| parametre.cle == "imprimante_nom"));
+
+    assert_eq!(parametrage.comptes.len(), 2);
+    assert_eq!(parametrage.produits.len(), 1);
+    assert_eq!(donnees.ventes.len(), 1);
+    assert_eq!(donnees.lignes.len(), 1);
+    assert_eq!(donnees.sessions.len(), 1);
+
+    // Base d arrivee vierge, puis import dans l ordre des dependances.
+    let arrivee = base();
+    let transaction = arrivee.unchecked_transaction().unwrap();
+
+    transfert::effacer_historique(&transaction).unwrap();
+    transfert::ecrire_parametrage(&transaction, &parametrage).unwrap();
+    transfert::ecrire_donnees(&transaction, &donnees).unwrap();
+    transaction.commit().unwrap();
+
+    assert_eq!(
+        parametres::lire_ou(&arrivee, "nom_commerce", "").unwrap(),
+        "Chez Ali"
+    );
+    assert_eq!(
+        comptes::exiger(&arrivee, gerant).unwrap().nom,
+        "Patron"
+    );
+
+    let produits = catalogue::lister_produits(&arrivee, &catalogue::Filtre::default()).unwrap();
+
+    assert_eq!(produits.len(), 1);
+    assert_eq!(produits[0].identifiant, produit);
+    assert_eq!(produits[0].prix_centimes, 150);
+
+    let lignes = ventes::lignes_de(&arrivee, vente).unwrap();
+
+    assert_eq!(lignes.len(), 1);
+    assert_eq!(lignes[0].libelle, "Coca 33cl");
+
+    let agregats = ventes::agregats(&arrivee).unwrap();
+
+    assert_eq!(agregats.nombre_ventes, 1);
+    assert_eq!(agregats.total_centimes, 300);
+    assert_eq!(
+        compteurs::lire(&arrivee, compteurs::NUMERO_TICKET).unwrap(),
+        1
+    );
+
+    let resume = transfert::resumer(&arrivee).unwrap();
+
+    assert_eq!(resume.comptes, 2);
+    assert_eq!(resume.produits, 1);
+    assert_eq!(resume.ventes, 1);
+}
+
+/// Import du parametrage seul sur une base qui porte encore des ventes : les
+/// comptes effaces sont pointes par ces ventes, la base doit refuser.
+#[test]
+fn refuse_d_effacer_un_compte_encore_pointe_par_une_vente() {
+    let connexion = base();
+    let caissier = comptes::creer(&connexion, "Ali", ROLE_CAISSIER, &empreinte_factice()).unwrap();
+    let produit = produit_vendable(&connexion, None, 150);
+    let session = sessions::ouvrir(&connexion, caissier, 0).unwrap();
+
+    ventes::enregistrer(
+        &connexion,
+        &ventes::VenteAEnregistrer {
+            numero_ticket: 1,
+            session,
+            caissier,
+            total_centimes: 150,
+            recu_centimes: 150,
+            rendu_centimes: 0,
+            nombre_articles: 1,
+        },
+        &[ventes::LigneAEnregistrer {
+            produit: Some(produit),
+            libelle: "Coca 33cl".to_string(),
+            code_barres: None,
+            rayon_libelle: "Boissons".to_string(),
+            prix_centimes: 150,
+            quantite: 1,
+            total_centimes: 150,
+        }],
+    )
+    .unwrap();
+
+    let parametrage = transfert::lire_parametrage(&connexion).unwrap();
+    let transaction = connexion.unchecked_transaction().unwrap();
+
+    assert!(transfert::ecrire_parametrage(&transaction, &parametrage).is_err());
 }

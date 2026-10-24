@@ -26,6 +26,8 @@ pub struct DonneesTicket {
     pub entete: String,
     pub pied: String,
     pub devise: String,
+    /// 2 pour l euro, 0 pour une devise sans subdivision comme le FCFA.
+    pub decimales: i64,
     pub numero_ticket: i64,
     pub horodatage: String,
     pub caissier: String,
@@ -57,6 +59,7 @@ pub struct DonneesRapportZ {
     pub numero: i64,
     pub nom_commerce: String,
     pub devise: String,
+    pub decimales: i64,
     pub genere_le: String,
     pub debut_le: String,
     pub fin_le: String,
@@ -107,9 +110,9 @@ pub fn rendre_ticket(donnees: &DonneesTicket, colonnes: usize) -> String {
             &format!(
                 "  {} x {}",
                 ligne.quantite,
-                monnaie::formater(ligne.prix_centimes)
+                monnaie::formater_avec(ligne.prix_centimes, donnees.decimales)
             ),
-            &monnaie::formater(ligne.total_centimes),
+            &monnaie::formater_avec(ligne.total_centimes, donnees.decimales),
             colonnes,
         ));
     }
@@ -117,17 +120,17 @@ pub fn rendre_ticket(donnees: &DonneesTicket, colonnes: usize) -> String {
     lignes.push(separateur(colonnes));
     lignes.push(paire(
         &format!("TOTAL {}", donnees.devise),
-        &monnaie::formater(donnees.total_centimes),
+        &monnaie::formater_avec(donnees.total_centimes, donnees.decimales),
         colonnes,
     ));
     lignes.push(paire(
         "Recu",
-        &monnaie::formater(donnees.recu_centimes),
+        &monnaie::formater_avec(donnees.recu_centimes, donnees.decimales),
         colonnes,
     ));
     lignes.push(paire(
         "Rendu",
-        &monnaie::formater(donnees.rendu_centimes),
+        &monnaie::formater_avec(donnees.rendu_centimes, donnees.decimales),
         colonnes,
     ));
     lignes.push(paire(
@@ -169,7 +172,7 @@ pub fn rendre_rapport_z(donnees: &DonneesRapportZ, colonnes: usize) -> String {
     for vente in &donnees.ventes {
         lignes.push(paire(
             &format!("no {} {}", vente.numero_ticket, vente.horodatage),
-            &monnaie::formater(vente.total_centimes),
+            &monnaie::formater_avec(vente.total_centimes, donnees.decimales),
             colonnes,
         ));
     }
@@ -180,7 +183,7 @@ pub fn rendre_rapport_z(donnees: &DonneesRapportZ, colonnes: usize) -> String {
     for total in &donnees.par_caissier {
         lignes.push(paire(
             &format!("{} ({})", total.libelle, total.quantite),
-            &monnaie::formater(total.total_centimes),
+            &monnaie::formater_avec(total.total_centimes, donnees.decimales),
             colonnes,
         ));
     }
@@ -191,7 +194,7 @@ pub fn rendre_rapport_z(donnees: &DonneesRapportZ, colonnes: usize) -> String {
     for total in &donnees.par_rayon {
         lignes.push(paire(
             &format!("{} ({})", total.libelle, total.quantite),
-            &monnaie::formater(total.total_centimes),
+            &monnaie::formater_avec(total.total_centimes, donnees.decimales),
             colonnes,
         ));
     }
@@ -205,7 +208,7 @@ pub fn rendre_rapport_z(donnees: &DonneesRapportZ, colonnes: usize) -> String {
     ));
     lignes.push(paire(
         &format!("TOTAL {}", donnees.devise),
-        &monnaie::formater(donnees.total_centimes),
+        &monnaie::formater_avec(donnees.total_centimes, donnees.decimales),
         colonnes,
     ));
     lignes.push(separateur(colonnes));
@@ -222,7 +225,7 @@ pub fn rendre_rapport_z(donnees: &DonneesRapportZ, colonnes: usize) -> String {
     ));
     lignes.push(paire(
         "Cumul encaisse",
-        &monnaie::formater(donnees.grand_total_centimes),
+        &monnaie::formater_avec(donnees.grand_total_centimes, donnees.decimales),
         colonnes,
     ));
     lignes.push(paire(
@@ -274,6 +277,7 @@ mod tests {
             entete: "Merci de votre visite".to_string(),
             pied: "A bientot".to_string(),
             devise: "EUR".to_string(),
+            decimales: monnaie::DECIMALES_DEFAUT,
             numero_ticket: 42,
             horodatage: "24/10/2026 01:12".to_string(),
             caissier: "Ali".to_string(),
@@ -319,6 +323,25 @@ mod tests {
         assert!(rendu.contains("Rendu"));
         assert!(rendu.contains("1,10"));
         assert!(rendu.contains("MON COMMERCE"));
+    }
+
+    #[test]
+    fn rend_le_ticket_sans_decimale_en_franc_cfa() {
+        let mut donnees = donnees_minimales();
+
+        donnees.devise = "FCFA".to_string();
+        donnees.decimales = 0;
+        donnees.lignes[0].prix_centimes = 50_000;
+        donnees.lignes[0].total_centimes = 100_000;
+        donnees.total_centimes = 100_000;
+        donnees.recu_centimes = 100_000;
+        donnees.rendu_centimes = 0;
+
+        let rendu = rendre_ticket(&donnees, COLONNES_58MM);
+
+        assert!(rendu.contains("2 x 500"));
+        assert!(rendu.contains("TOTAL FCFA"));
+        assert!(!rendu.contains(","), "aucune virgule attendue : {rendu}");
     }
 
     #[test]

@@ -7,6 +7,20 @@ use crate::erreur::{ErreurApplication, Resultat};
 
 pub const MONTANT_MAXIMAL: i64 = 99_999_999;
 
+/// Decimales affichees par defaut : deux, comme l euro.
+pub const DECIMALES_DEFAUT: i64 = 2;
+
+/// Les devises sans subdivision (FCFA, XOF, XAF) s affichent en entiers
+/// pleins : une virgule a l ecran d une caisse en franc CFA est une erreur de
+/// lecture, pas un detail de presentation.
+pub fn borner_decimales(decimales: i64) -> i64 {
+    if decimales <= 0 {
+        0
+    } else {
+        DECIMALES_DEFAUT
+    }
+}
+
 pub fn valider(centimes: i64) -> Resultat<i64> {
     if centimes < 0 {
         return Err(ErreurApplication::Validation(
@@ -78,6 +92,12 @@ pub fn analyser(saisie: &str) -> Resultat<i64> {
 
 /// Rend "1 234,50" : groupes de trois, virgule decimale, deux decimales.
 pub fn formater(centimes: i64) -> String {
+    formater_avec(centimes, DECIMALES_DEFAUT)
+}
+
+/// Rend "1 234,50" a deux decimales, "1 234" a zero decimale. La monnaie
+/// circule toujours en centimes : seule la presentation change.
+pub fn formater_avec(centimes: i64, decimales: i64) -> String {
     let negatif = centimes < 0;
     let absolu = centimes.abs();
     let unites = absolu / 100;
@@ -95,6 +115,10 @@ pub fn formater(centimes: i64) -> String {
     }
 
     let signe = if negatif { "-" } else { "" };
+
+    if borner_decimales(decimales) == 0 {
+        return format!("{signe}{groupes}");
+    }
 
     format!("{signe}{groupes},{reste:02}")
 }
@@ -128,6 +152,22 @@ mod tests {
         assert_eq!(formater(1550), "15,50");
         assert_eq!(formater(150_000), "1 500,00");
         assert_eq!(formater(123_456_789), "1 234 567,89");
+    }
+
+    #[test]
+    fn formate_sans_decimale_pour_le_franc_cfa() {
+        assert_eq!(formater_avec(50_000, 0), "500");
+        assert_eq!(formater_avec(0, 0), "0");
+        assert_eq!(formater_avec(123_456_789, 0), "1 234 567");
+        assert_eq!(formater_avec(-50_000, 0), "-500");
+    }
+
+    #[test]
+    fn borne_le_nombre_de_decimales() {
+        assert_eq!(borner_decimales(0), 0);
+        assert_eq!(borner_decimales(-3), 0);
+        assert_eq!(borner_decimales(2), 2);
+        assert_eq!(borner_decimales(9), 2);
     }
 
     #[test]

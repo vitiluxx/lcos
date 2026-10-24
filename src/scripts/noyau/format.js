@@ -1,10 +1,25 @@
 (function (global) {
   "use strict";
 
-  // Meme mise en forme que le rendu Rust du ticket : groupes de trois,
-  // virgule decimale, deux decimales toujours presentes.
-  function monnaie(centimes) {
-    const valeur = Number(centimes) || 0;
+  const DECIMALES_DEFAUT = 2;
+
+  // Nombre de decimales affichees, dicte par le parametrage de la devise :
+  // deux pour l euro, zero pour le FCFA. La monnaie reste comptee en centimes
+  // partout, seule la presentation change.
+  let decimales = DECIMALES_DEFAUT;
+
+  function definirDecimales(valeur) {
+    decimales = Number(valeur) > 0 ? DECIMALES_DEFAUT : 0;
+  }
+
+  function avecDecimales() {
+    return decimales > 0;
+  }
+
+  // Meme mise en forme que le rendu Rust du ticket : groupes de trois et,
+  // quand la devise en a, virgule decimale a deux chiffres.
+  function monnaie(somme_centimes) {
+    const valeur = Number(somme_centimes) || 0;
     const negatif = valeur < 0;
     const absolu = Math.abs(valeur);
     const unites = Math.floor(absolu / 100);
@@ -21,7 +36,33 @@
       groupes += chiffre;
     });
 
-    return (negatif ? "-" : "") + groupes + "," + String(reste).padStart(2, "0");
+    const signe = negatif ? "-" : "";
+
+    if (!avecDecimales()) {
+      return signe + groupes;
+    }
+
+    return signe + groupes + "," + String(reste).padStart(2, "0");
+  }
+
+  // Saisie humaine vers centimes. Sans decimale, "500" vaut 500 unites.
+  function centimes(saisie) {
+    const texte = String(saisie || "").trim();
+
+    if (!texte) {
+      return 0;
+    }
+
+    const tranches = texte.split(",");
+    const unites = entier(tranches[0] || "0", 0);
+
+    if (!avecDecimales()) {
+      return unites * 100;
+    }
+
+    const partie = (tranches[1] || "").padEnd(2, "0").slice(0, 2);
+
+    return unites * 100 + entier(partie, 0);
   }
 
   function element(identifiant) {
@@ -104,6 +145,9 @@
 
   global.format = {
     monnaie: monnaie,
+    centimes: centimes,
+    definirDecimales: definirDecimales,
+    avecDecimales: avecDecimales,
     element: element,
     vider: vider,
     creer: creer,

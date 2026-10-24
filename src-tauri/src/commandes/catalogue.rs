@@ -10,6 +10,10 @@ use crate::securite::RegistreJetons;
 const ORDRE_MAXIMAL: i64 = 999;
 const STOCK_MAXIMAL: i64 = 1_000_000;
 
+/// Valeur du champ stock qui dispense le produit de tout decompte. C est la
+/// valeur par defaut d une fiche neuve : on vend d abord, on compte apres.
+const STOCK_SANS_SUIVI: &str = "NON";
+
 #[derive(Serialize)]
 pub struct ResultatRecherche {
     pub trouve: bool,
@@ -114,15 +118,14 @@ pub fn creer_produit(
     libelle: String,
     code_barres: Option<String>,
     prix: String,
-    stock: Option<i64>,
-    suivi_stock: Option<bool>,
+    stock: Option<String>,
 ) -> Resultat<catalogue::Produit> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
     let libelle_valide = catalogue::valider_libelle(&libelle)?;
     let prix_centimes = monnaie::analyser(&prix)?;
     let code = normaliser_code(code_barres)?;
-    let stock_valide = borner_stock(stock.unwrap_or(0))?;
+    let (stock_valide, suivi) = analyser_stock(stock)?;
 
     depot.executer(|connexion| {
         catalogue::exiger_rayon(connexion, rayon)?;
@@ -134,7 +137,7 @@ pub fn creer_produit(
             code.as_deref(),
             prix_centimes,
             stock_valide,
-            suivi_stock.unwrap_or(true),
+            suivi,
         )?;
 
         catalogue::exiger_produit(connexion, identifiant)
@@ -152,8 +155,7 @@ pub fn modifier_produit(
     libelle: String,
     code_barres: Option<String>,
     prix: String,
-    stock: Option<i64>,
-    suivi_stock: Option<bool>,
+    stock: Option<String>,
     actif: bool,
 ) -> Resultat<catalogue::Produit> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
@@ -161,7 +163,7 @@ pub fn modifier_produit(
     let libelle_valide = catalogue::valider_libelle(&libelle)?;
     let prix_centimes = monnaie::analyser(&prix)?;
     let code = normaliser_code(code_barres)?;
-    let stock_valide = borner_stock(stock.unwrap_or(0))?;
+    let (stock_valide, suivi) = analyser_stock(stock)?;
 
     depot.executer(|connexion| {
         catalogue::exiger_rayon(connexion, rayon)?;
@@ -173,7 +175,7 @@ pub fn modifier_produit(
             code.as_deref(),
             prix_centimes,
             stock_valide,
-            suivi_stock.unwrap_or(true),
+            suivi,
             actif,
         )?;
 
@@ -220,6 +222,26 @@ fn borner_ordre(ordre: i64) -> Resultat<i64> {
     Ok(ordre)
 }
 
+/// Le champ stock de la fiche produit accepte deux formes : un nombre, ou
+/// NON. NON se vend sans decompte : aucun stock n est exige a la vente et
+/// aucune quantite n est retiree a l encaissement.
+fn analyser_stock(saisie: Option<String>) -> Resultat<(i64, bool)> {
+    let brut = saisie.unwrap_or_default();
+    let nettoye = brut.trim();
+
+    if nettoye.is_empty() || nettoye.eq_ignore_ascii_case(STOCK_SANS_SUIVI) {
+        return Ok((0, false));
+    }
+
+    let quantite: i64 = nettoye.parse().map_err(|_| {
+        ErreurApplication::Validation(format!(
+            "stock : un nombre entier, ou {STOCK_SANS_SUIVI} pour vendre sans decompte"
+        ))
+    })?;
+
+    Ok((borner_stock(quantite)?, true))
+}
+
 fn borner_stock(stock: i64) -> Resultat<i64> {
     if !(0..=STOCK_MAXIMAL).contains(&stock) {
         return Err(ErreurApplication::Validation(format!(
@@ -241,5 +263,31 @@ fn normaliser_code(code_barres: Option<String>) -> Resultat<Option<String>> {
 
             Ok(Some(analyse.code))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn un_stock_absent_ou_non_dispense_du_suivi() {
+        assert_eq!(analyser_stock(None).unwrap(), (0, false));
+        assert_eq!(analyser_stock(Some(String::new())).unwrap(), (0, false));
+        assert_eq!(analyser_stock(Some("NON".to_string())).unwrap(), (0, false));
+        assert_eq!(analyser_stock(Some("  non  ".to_string())).unwrap(), (0, false));
+    }
+
+    #[test]
+    fn un_nombre_active_le_suivi() {
+        assert_eq!(analyser_stock(Some("12".to_string())).unwrap(), (12, true));
+        assert_eq!(analyser_stock(Some(" 0 ".to_string())).unwrap(), (0, true));
+    }
+
+    #[test]
+    fn refuse_une_saisie_de_stock_illisible() {
+        assert!(analyser_stock(Some("douze".to_string())).is_err());
+        assert!(analyser_stock(Some("-3".to_string())).is_err());
+        assert!(analyser_stock(Some("9999999999".to_string())).is_err());
     }
 }

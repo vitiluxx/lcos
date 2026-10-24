@@ -3,6 +3,10 @@
 
   const element = global.format.element;
 
+  // Valeur du champ stock qui dispense le produit de tout decompte, et valeur
+  // par defaut d une fiche neuve : on vend d abord, on compte apres.
+  const STOCK_SANS_SUIVI = "NON";
+
   let liste = [];
   let rayons = [];
   let enEdition = null;
@@ -13,8 +17,7 @@
     element("produit_libelle").value = "";
     element("produit_code").value = "";
     element("produit_prix").value = "";
-    element("produit_stock").value = "0";
-    element("produit_suivi").checked = true;
+    element("produit_stock").value = STOCK_SANS_SUIVI;
     element("produit_actif").checked = true;
     element("produit_enregistrer").textContent = "Creer";
     element("produit_annuler").hidden = true;
@@ -27,8 +30,9 @@
     element("produit_libelle").value = produit.libelle;
     element("produit_code").value = produit.code_barres || "";
     element("produit_prix").value = global.format.monnaie(produit.prix_centimes).replace(/ /g, "");
-    element("produit_stock").value = String(produit.stock);
-    element("produit_suivi").checked = produit.suivi_stock;
+    element("produit_stock").value = produit.suivi_stock
+      ? String(produit.stock)
+      : STOCK_SANS_SUIVI;
     element("produit_actif").checked = produit.actif;
     element("produit_rayon").value = String(produit.rayon);
     element("produit_enregistrer").textContent = "Enregistrer";
@@ -71,7 +75,7 @@
       );
       ligne.appendChild(
         global.format.cellule(
-          produit.suivi_stock ? produit.stock : "libre",
+          produit.suivi_stock ? produit.stock : STOCK_SANS_SUIVI,
           "tableau__chiffre"
         )
       );
@@ -151,8 +155,7 @@
       libelle: element("produit_libelle").value,
       codeBarres: element("produit_code").value,
       prix: element("produit_prix").value,
-      stock: global.format.entier(element("produit_stock").value, 0),
-      suiviStock: element("produit_suivi").checked
+      stock: element("produit_stock").value
     };
 
     try {

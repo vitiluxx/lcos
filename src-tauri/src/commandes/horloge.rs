@@ -15,6 +15,8 @@ use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
 use crate::securite::RegistreJetons;
 
+use super::administration;
+
 const CREATION_SANS_FENETRE: u32 = 0x0800_0000;
 const ANNEE_MINIMALE: i64 = 2000;
 const ANNEE_MAXIMALE: i64 = 2099;
@@ -58,13 +60,17 @@ pub fn regler_horloge(
         &["-NoProfile", "-NonInteractive", "-Command", &consigne],
     )?;
 
+    // Sans droits administrateur, Set-Date est refuse : on redemande l horloge
+    // dans un processus eleve plutot que d imposer une relance de LCOS.
     if !sortie.status.success() {
-        let detail = String::from_utf8_lossy(&sortie.stderr);
-        let premiere = detail.lines().next().unwrap_or("echec du reglage");
+        administration::executer_eleve(&consigne).map_err(|incident| {
+            let detail = String::from_utf8_lossy(&sortie.stderr);
+            let premiere = detail.lines().next().unwrap_or("echec du reglage");
 
-        return Err(ErreurApplication::AccesRefuse(format!(
-            "reglage refuse par Windows : {premiere}. Relancer LCOS en tant qu administrateur ou regler depuis le panneau Windows"
-        )));
+            ErreurApplication::AccesRefuse(format!(
+                "reglage refuse par Windows : {premiere}. {incident}"
+            ))
+        })?;
     }
 
     recuperer_horloge(depot)

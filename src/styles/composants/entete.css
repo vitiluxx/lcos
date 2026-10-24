@@ -12,7 +12,21 @@
   display: flex;
   align-items: baseline;
   gap: var(--espace_3);
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+/*
+ * Bloc de droite : badges et icone de navigation sur une seule ligne. Sans
+ * display flex ici, l icone est un bloc et passe sous les badges : c est une
+ * question de flux, pas de marges.
+ */
+.entete__version {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: var(--espace_2);
 }
 
 .entete__sigle {
