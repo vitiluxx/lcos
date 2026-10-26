@@ -3,8 +3,20 @@
 
   const element = global.format.element;
 
+  // Plafond de la version d essai, tenu par le noyau.
+  const ESSAI_CAISSIERS = 1;
+
   let liste = [];
   let enEdition = null;
+
+  // La modification d un compte existant reste permise : seule la creation
+  // d un compte de plus est fermee pendant l essai.
+  function appliquerQuota() {
+    const atteint = global.vueLicence.quotaAtteint(liste.length, ESSAI_CAISSIERS);
+
+    element("caissier_quota").hidden = !atteint;
+    element("caissier_enregistrer").disabled = atteint && enEdition === null;
+  }
 
   function reinitialiserFormulaire() {
     enEdition = null;
@@ -42,6 +54,8 @@
     const corps = element("caissiers_liste");
 
     global.format.vider(corps);
+
+    appliquerQuota();
 
     if (!liste.length) {
       corps.appendChild(global.format.ligneVide(4, "Aucun caissier enregistre."));

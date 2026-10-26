@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "lcos"
-version = "1.6.0"
+version = "1.9.0"
 dependencies = [
  "ed25519-dalek",
  "getrandom 0.2.17",

@@ -6,6 +6,8 @@ use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::{ROLE_CAISSIER, ROLE_GERANT};
 use crate::securite::RegistreJetons;
 
+use super::licence;
+
 /// Liste visible sans code : l ecran d ouverture de session doit proposer les
 /// caissiers. Aucune empreinte ne sort du depot.
 #[tauri::command]
@@ -42,6 +44,10 @@ pub fn creer_caissier(
     let empreinte = secret::sceller(code.trim())?;
 
     depot.executer(|connexion| {
+        let presents = comptes::lister(connexion, ROLE_CAISSIER)?.len() as i64;
+
+        licence::exiger_quota_essai(connexion, "caissier(s)", presents, licence::ESSAI_CAISSIERS)?;
+
         let identifiant = comptes::creer(connexion, &nom_valide, ROLE_CAISSIER, &empreinte)?;
 
         comptes::exiger(connexion, identifiant)

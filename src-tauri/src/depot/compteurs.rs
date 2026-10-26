@@ -47,3 +47,15 @@ pub fn incrementer(connexion: &Connection, cle: &str, pas: i64) -> Resultat<i64>
 
     lire(connexion, cle)
 }
+
+/// Retrait d un cumul, pour une vente annulee. Le plancher a zero evite
+/// qu une base restauree a partir d un export partiel fasse passer un grand
+/// total dans les negatifs.
+pub fn retirer(connexion: &Connection, cle: &str, pas: i64) -> Resultat<i64> {
+    connexion.execute(
+        "UPDATE compteur SET valeur = MAX(0, valeur - ?2) WHERE cle = ?1",
+        (cle, pas.max(0)),
+    )?;
+
+    lire(connexion, cle)
+}

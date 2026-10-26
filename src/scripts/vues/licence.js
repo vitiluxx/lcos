@@ -175,6 +175,23 @@
     entrer: entrer,
     autorise: function () {
       return !etat || etat.autorise;
+    },
+
+    // Etat inconnu : on ne bride rien a l ecran sur une supposition. Les
+    // plafonds de l essai sont tenus par le noyau, qui refuse pour de vrai.
+    //
+    // Une licence posee mais refusee (illisible, expiree, autre poste) ne vaut
+    // pas la version complete : c est le meme calcul que dans le noyau.
+    sousLicence: function () {
+      return !etat || Boolean(etat.sous_licence && etat.autorise);
+    },
+
+    quotaAtteint: function (presents, maximum) {
+      return (
+        Boolean(etat) &&
+        !(etat.sous_licence && etat.autorise) &&
+        presents >= maximum
+      );
     }
   };
 

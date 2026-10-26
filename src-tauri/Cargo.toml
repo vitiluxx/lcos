@@ -1,6 +1,6 @@
 [package]
 name = "lcos"
-version = "1.6.0"
+version = "1.9.0"
 description = "Logiciel de caisse open source"
 authors = ["vitiluxx"]
 license = "GPL-3.0-or-later"

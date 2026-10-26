@@ -47,3 +47,41 @@
   background: var(--couleur_accent_faible);
   color: var(--couleur_accent);
 }
+
+/* Journal des ventes : quatre lignes visibles, le reste au defilement. La
+ * hauteur est posee en dur parce qu elle doit tomber juste sous la quatrieme
+ * ligne : 4 x 38px de ligne plus 30px d entete. */
+.journal_ventes {
+  max-height: 182px;
+  overflow-y: auto;
+}
+
+.journal_ventes .tableau thead th {
+  position: sticky;
+  top: 0;
+  background: var(--couleur_surface);
+  z-index: 1;
+}
+
+.journal_ventes .tableau tbody tr {
+  cursor: pointer;
+}
+
+.journal_ventes .tableau tbody tr:hover td {
+  background: var(--couleur_fond);
+}
+
+/* Demande de confirmation d une annulation : elle sort du cadre du tableau
+ * pour qu une vente ne disparaisse jamais sur une seule frappe. */
+.annulation {
+  margin-top: var(--espace_4);
+  padding: var(--espace_4);
+  border: 1px solid var(--couleur_alerte);
+  border-radius: var(--rayon_2);
+}
+
+.annulation__question {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--espace_3);
+}

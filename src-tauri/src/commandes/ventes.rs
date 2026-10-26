@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use crate::depot::{catalogue, compteurs, sessions, ventes, Depot};
-use crate::domaine::monnaie;
+use crate::depot::{catalogue, comptes, compteurs, sessions, ventes, Depot};
+use crate::domaine::{monnaie, secret};
 use crate::domaine::panier::{self, LigneChiffree};
 use crate::domaine::ticket::{self, DonneesTicket, LigneTicket, TotalNomme};
 use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
-use crate::securite::RegistreJetons;
+use crate::securite::{Limiteur, RegistreJetons};
 
 use super::{licence, reglages};
 
@@ -219,6 +219,120 @@ pub fn encaisser(
             donnees,
         })
     })
+}
+
+/// Journal de caisse tel que l ecran Session le montre : les ventes les plus
+/// recentes d abord, et l etat de l option d annulation, car c est elle qui
+/// decide si la croix et la touche Suppr font quelque chose.
+#[derive(Serialize)]
+pub struct JournalCaisse {
+    pub annulation_active: bool,
+    pub ventes: Vec<ventes::VenteJournal>,
+}
+
+/// Lecture seule, sans jeton : ce sont les ventes du poste, deja passees sous
+/// les yeux du caissier qui les a encaissees. Aucun secret n y figure.
+#[tauri::command]
+pub fn recuperer_journal_caisse(depot: State<Depot>) -> Resultat<JournalCaisse> {
+    depot.executer(|connexion| {
+        Ok(JournalCaisse {
+            annulation_active: reglages::charger(connexion)?.annulation_vente,
+            ventes: ventes::journal(connexion, None)?,
+        })
+    })
+}
+
+/// Annulation d une vente deja encaissee. Trois verrous : l option ouverte par
+/// le gerant, le code du caissier de la vente ou celui du gerant, et le
+/// limiteur anti-force-brute. L operation rend le stock, corrige les grands
+/// totaux et laisse une trace nominative ; le numero de ticket, lui, reste
+/// consomme a vie.
+#[tauri::command]
+pub fn annuler_vente(
+    depot: State<Depot>,
+    limiteur: State<Limiteur>,
+    vente: i64,
+    code: String,
+) -> Resultat<ventes::VenteAnnulee> {
+    let entete = depot.executer(|connexion| {
+        licence::exiger_active(connexion)?;
+
+        if !reglages::charger(connexion)?.annulation_vente {
+            return Err(ErreurApplication::AccesRefuse(
+                "annulation des ventes desactivee : le gerant doit l autoriser dans Parametrage"
+                    .to_string(),
+            ));
+        }
+
+        ventes::exiger(connexion, vente)
+    })?;
+
+    let cible = format!("annulation:{vente}");
+
+    limiteur.verifier(&cible)?;
+
+    let auteur = depot.executer(|connexion| qui_annule(connexion, &entete, code.trim()))?;
+
+    let Some(auteur) = auteur else {
+        limiteur.echec(&cible);
+
+        return Err(ErreurApplication::AccesRefuse(
+            "code du caissier de la vente ou du gerant attendu".to_string(),
+        ));
+    };
+
+    limiteur.reussite(&cible);
+
+    depot.executer(|connexion| {
+        let transaction = connexion.unchecked_transaction()?;
+        let trace = ventes::tracer_annulation(&transaction, vente, &auteur)?;
+
+        for restitution in ventes::restitutions(&transaction, vente)? {
+            catalogue::remettre_au_stock(&transaction, restitution.produit, restitution.quantite)?;
+        }
+
+        ventes::supprimer(&transaction, vente)?;
+
+        compteurs::retirer(
+            &transaction,
+            compteurs::GRAND_TOTAL_CENTIMES,
+            entete.total_centimes,
+        )?;
+        compteurs::retirer(
+            &transaction,
+            compteurs::GRAND_TOTAL_ARTICLES,
+            entete.nombre_articles,
+        )?;
+        compteurs::retirer(&transaction, compteurs::GRAND_TOTAL_VENTES, 1)?;
+
+        transaction.commit()?;
+
+        Ok(trace)
+    })
+}
+
+/// Nom a inscrire dans la trace, ou rien si le code ne vaut pour personne. Le
+/// caissier de la vente peut defaire la sienne, le gerant peut tout defaire.
+fn qui_annule(
+    connexion: &rusqlite::Connection,
+    entete: &ventes::VenteJournal,
+    code: &str,
+) -> Resultat<Option<String>> {
+    if let Some(empreinte) = comptes::lire_empreinte(connexion, entete.caissier_identifiant)? {
+        if secret::verifier(code, &empreinte) {
+            return Ok(Some(entete.caissier.clone()));
+        }
+    }
+
+    if let Some(gerant) = comptes::lire_par_role(connexion, ROLE_GERANT)? {
+        if let Some(empreinte) = comptes::lire_empreinte(connexion, gerant.identifiant)? {
+            if secret::verifier(code, &empreinte) {
+                return Ok(Some(gerant.nom));
+            }
+        }
+    }
+
+    Ok(None)
 }
 
 #[tauri::command]

@@ -7,9 +7,20 @@
   // par defaut d une fiche neuve : on vend d abord, on compte apres.
   const STOCK_SANS_SUIVI = "NON";
 
+  // Plafond de la version d essai, tenu par le noyau.
+  const ESSAI_PRODUITS = 6;
+
   let liste = [];
   let rayons = [];
+  let total = 0;
   let enEdition = null;
+
+  function appliquerQuota() {
+    const atteint = global.vueLicence.quotaAtteint(total, ESSAI_PRODUITS);
+
+    element("produit_quota").hidden = !atteint;
+    element("produit_enregistrer").disabled = atteint && enEdition === null;
+  }
 
   function reinitialiserFormulaire() {
     enEdition = null;
@@ -51,6 +62,8 @@
   }
 
   function afficher() {
+    appliquerQuota();
+
     const corps = element("produits_liste");
 
     global.format.vider(corps);
@@ -130,10 +143,18 @@
 
   async function rafraichir() {
     try {
+      const recherche = element("produits_recherche").value;
+
       liste = await global.pont.appeler("lister_produits", {
-        recherche: element("produits_recherche").value,
+        recherche: recherche,
         inclureInactifs: true
       });
+
+      // La liste affichee est filtree par la recherche : le plafond, lui, se
+      // compte sur le catalogue entier.
+      total = recherche.trim()
+        ? (await global.pont.appeler("lister_produits", { inclureInactifs: true })).length
+        : liste.length;
 
       afficher();
     } catch (incident) {

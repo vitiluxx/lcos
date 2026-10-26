@@ -149,9 +149,25 @@
                   autocomplete="off"
                   placeholder="0,00"
                 />
-                <span class="champ__aide">
-                  Touche + pour ajouter l article, Entree pour totaliser.
+                <span class="champ__aide" id="caisse_prix_aide">
+                  Touche * pour multiplier, + pour ajouter l article, Entree pour
+                  totaliser.
                 </span>
+              </div>
+
+              <div class="champ" id="caisse_bloc_quantite" hidden>
+                <label class="champ__etiquette" for="caisse_quantite">
+                  Quantite de l article
+                </label>
+                <input
+                  class="paiement__montant"
+                  id="caisse_quantite"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  readonly
+                />
+                <span class="champ__aide" id="caisse_quantite_aide"></span>
               </div>
 
               <div class="champ">
@@ -183,6 +199,7 @@
                 <button class="pave__touche" data-touche="1" type="button">1</button>
                 <button class="pave__touche" data-touche="2" type="button">2</button>
                 <button class="pave__touche" data-touche="3" type="button">3</button>
+                <button class="pave__touche" data-touche="multiplier" type="button">x</button>
                 <button class="pave__touche pave__touche--large" data-touche="exact" type="button">
                   Montant exact
                 </button>
@@ -212,7 +229,7 @@
               <div class="paiement__pied">
                 <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
                 <span class="paiement__indice" id="caisse_indice">
-                  Scanne les articles puis tape la somme recue.
+                  Scanne les articles puis Entree : le total se pose dans la somme recue.
                 </span>
               </div>
 
@@ -220,7 +237,7 @@
                 Encaisser (Entree)
               </button>
               <button class="bouton bouton--danger" id="caisse_annuler" type="button">
-                Annuler la vente (Echap)
+                Annuler la vente
               </button>
             </div>
 
@@ -332,6 +349,64 @@
             <div>
               <div class="session__mesure_libelle">Fond de caisse</div>
               <div class="session__mesure_valeur" id="session_fond">0,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panneau">
+          <div class="parametrage__entete">
+            <h2 class="panneau__titre">Ventes enregistrees</h2>
+            <span class="badge badge--attente" id="session_badge_annulation">
+              annulation desactivee
+            </span>
+          </div>
+          <p class="panneau__intro" id="session_journal_intro">
+            Les quatre ventes les plus recentes sont visibles : descends dans la liste
+            pour voir les precedentes.
+          </p>
+
+          <div class="cadre_tableau journal_ventes">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Date</th>
+                  <th>Caissier</th>
+                  <th class="tableau__chiffre">Articles</th>
+                  <th class="tableau__chiffre">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="session_journal"></tbody>
+            </table>
+          </div>
+
+          <div class="annulation" id="session_annulation" data-saisie="clavier" hidden>
+            <p class="annulation__question" id="session_annulation_question">--</p>
+            <div class="formulaire">
+              <div class="formulaire__ligne">
+                <div class="champ">
+                  <label class="champ__etiquette" for="session_annulation_code">
+                    Code du caissier de la vente, ou du gerant
+                  </label>
+                  <input
+                    class="champ__saisie champ__saisie--chiffre"
+                    id="session_annulation_code"
+                    type="password"
+                    inputmode="numeric"
+                    maxlength="8"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+              <div class="formulaire__actions">
+                <button class="bouton bouton--danger" id="session_annulation_valider" type="button">
+                  Annuler cette vente
+                </button>
+                <button class="bouton" id="session_annulation_renoncer" type="button">
+                  Renoncer
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -586,6 +661,32 @@
             </div>
 
             <div class="panneau">
+              <div class="parametrage__entete">
+                <h2 class="panneau__titre">Annulation des ventes</h2>
+                <span class="badge badge--attente" id="badge_annulation_vente">desactivee</span>
+              </div>
+              <p class="panneau__intro">
+                Activee, une vente deja encaissee peut etre annulee depuis l ecran
+                Session, par la croix ou la touche Suppr. Le code du caissier de la
+                vente ou celui du gerant est demande, le stock revient, et l annulation
+                laisse une trace nominative lisible plus bas dans Rapports.
+              </p>
+              <div class="formulaire">
+                <div class="champ champ--bascule">
+                  <input id="annulation_vente" type="checkbox" />
+                  <label class="champ__etiquette" for="annulation_vente">
+                    Autoriser l annulation d une vente deja encaissee
+                  </label>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton bouton--principal" id="annulation_vente_appliquer" type="button">
+                    Appliquer
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panneau">
               <h2 class="panneau__titre">Ticket de caisse</h2>
               <div class="formulaire">
                 <div class="champ champ--bascule">
@@ -712,6 +813,10 @@
                     <input id="caissier_actif" type="checkbox" checked />
                     <label class="champ__etiquette" for="caissier_actif">Compte actif</label>
                   </div>
+                  <p class="avertissement" id="caissier_quota" hidden>
+                    Version d essai : 1 caissier au maximum. Insere une licence pour en
+                    creer davantage.
+                  </p>
                   <div class="formulaire__actions">
                     <button class="bouton bouton--principal" id="caissier_enregistrer" type="button">
                       Creer
@@ -764,6 +869,10 @@
                     <input id="rayon_actif" type="checkbox" checked />
                     <label class="champ__etiquette" for="rayon_actif">Rayon actif</label>
                   </div>
+                  <p class="avertissement" id="rayon_quota" hidden>
+                    Version d essai : 1 rayon au maximum. Insere une licence pour en creer
+                    davantage.
+                  </p>
                   <div class="formulaire__actions">
                     <button class="bouton bouton--principal" id="rayon_enregistrer" type="button">
                       Creer
@@ -844,6 +953,10 @@
                     <input id="produit_actif" type="checkbox" checked />
                     <label class="champ__etiquette" for="produit_actif">Produit en vente</label>
                   </div>
+                  <p class="avertissement" id="produit_quota" hidden>
+                    Version d essai : 6 produits au maximum. Insere une licence pour en creer
+                    davantage.
+                  </p>
                   <div class="formulaire__actions">
                     <button class="bouton bouton--principal" id="produit_enregistrer" type="button">
                       Creer
@@ -1036,6 +1149,11 @@
               </div>
             </div>
 
+            <p class="avertissement" id="transfert_essai" hidden>
+              Version d essai : l export et l import demandent une licence. Tout le reste
+              de la caisse fonctionne.
+            </p>
+
             <div class="panneau">
               <h2 class="panneau__titre">Exporter</h2>
               <p class="panneau__intro">
@@ -1083,6 +1201,28 @@
                   <select class="champ__liste" id="transfert_fichier"></select>
                   <span class="champ__aide" id="transfert_fichier_aide">aucun fichier lu</span>
                 </div>
+                <div class="champ">
+                  <label class="champ__etiquette" for="transfert_chemin">
+                    Ou chemin complet du fichier
+                  </label>
+                  <input
+                    class="champ__saisie"
+                    id="transfert_chemin"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="E:\lcos_parametrage_20261025-1830.json"
+                  />
+                  <span class="champ__aide">
+                    Rempli, ce chemin est lu a la place de la liste. La liste ne montre que
+                    les fichiers .json du dossier d export : change-le ci-dessus puis
+                    Relire le dossier.
+                  </span>
+                </div>
+                <div class="formulaire__actions">
+                  <button class="bouton" id="transfert_relire_import" type="button">
+                    Relire le dossier
+                  </button>
+                </div>
                 <div class="champ champ--bascule">
                   <input id="transfert_avec_donnees" type="checkbox" />
                   <label class="champ__etiquette" for="transfert_avec_donnees">
@@ -1116,9 +1256,9 @@
               <p class="carte__detail">effacees par la remise a zero</p>
             </article>
             <article class="carte">
-              <h2 class="carte__titre">Total en memoire</h2>
+              <h2 class="carte__titre">Total vente</h2>
               <p class="carte__valeur" id="rapports_total">0,00</p>
-              <p class="carte__detail">depuis la derniere cloture</p>
+              <p class="carte__detail">ventes depuis la derniere remise a zero</p>
             </article>
             <article class="carte">
               <h2 class="carte__titre">Grand total</h2>
@@ -1152,7 +1292,8 @@
                     <th>Ticket</th>
                     <th>Date</th>
                     <th>Caissier</th>
-                    <th class="tableau__chiffre">Articles</th>
+                    <th>Articles</th>
+                    <th class="tableau__chiffre">Qte</th>
                     <th class="tableau__chiffre">Total</th>
                     <th></th>
                   </tr>
@@ -1211,6 +1352,61 @@
                   Editer le rapport Z et repartir a zero
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Vider la memoire des ventes</h2>
+            <p class="panneau__intro">
+              Ecrit le detail de toutes les ventes de la periode dans un fichier
+              <code>.csv</code> (une ligne par article vendu, ouvert d un double clic par un
+              tableur), puis remet la periode a zero exactement comme le rapport Z : ventes
+              effacees, grands totaux, compteur de remises a zero, numero de ticket et
+              programmation conserves. Le fichier part dans <code>Documents\LCOS</code>.
+            </p>
+
+            <p class="avertissement" id="rapports_export_alerte" hidden>
+              Une session de caisse est ouverte : ferme-la avant de vider la memoire.
+            </p>
+
+            <div class="formulaire">
+              <div class="champ champ--bascule">
+                <input id="rapports_export_confirmation" type="checkbox" />
+                <label class="champ__etiquette" for="rapports_export_confirmation">
+                  Je confirme l export du detail puis l effacement des ventes
+                </label>
+              </div>
+              <div class="formulaire__actions">
+                <button class="bouton bouton--danger" id="rapports_exporter_vider" type="button" disabled>
+                  Exporter le detail et vider la memoire
+                </button>
+              </div>
+            </div>
+
+            <p class="champ__aide" id="rapports_export_resultat" hidden></p>
+          </div>
+
+          <div class="panneau">
+            <h2 class="panneau__titre">Ventes annulees</h2>
+            <p class="panneau__intro">
+              Trace des ventes retirees du journal depuis la derniere remise a zero. Un
+              numero de ticket annule n est jamais reattribue : c est ici qu il
+              s explique.
+            </p>
+            <div class="cadre_tableau">
+              <table class="tableau">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Encaissee le</th>
+                    <th>Caissier</th>
+                    <th>Annulee le</th>
+                    <th>Par</th>
+                    <th class="tableau__chiffre">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="rapports_annulations"></tbody>
+              </table>
             </div>
           </div>
 
@@ -1362,6 +1558,137 @@
             </div>
           </div>
         </div>
+
+        <div class="panneau" data-saisie="clavier">
+          <div class="vue_peripheriques__entete">
+            <div>
+              <h2 class="panneau__titre">Afficheur client</h2>
+              <p class="panneau__intro">
+                Le petit ecran tourne vers le client, a l arriere de la caisse. Il affiche
+                la somme en temps reel pendant la vente. Branche sur un port serie, meme
+                quand la prise est de l USB : Windows le montre alors comme un
+                <code>COM</code>. Cherche-le dans le materiel detecte plus bas.
+              </p>
+            </div>
+            <span class="badge badge--attente" id="badge_afficheur">eteint</span>
+          </div>
+
+          <div class="formulaire">
+            <div class="champ champ--bascule">
+              <input id="afficheur_actif" type="checkbox" />
+              <label class="champ__etiquette" for="afficheur_actif">
+                Envoyer la somme sur l afficheur client
+              </label>
+            </div>
+
+            <div class="formulaire__ligne">
+              <div class="champ">
+                <label class="champ__etiquette" for="afficheur_port">Port</label>
+                <select class="champ__liste" id="afficheur_port"></select>
+                <span class="champ__aide" id="afficheur_port_aide">aucun port detecte</span>
+              </div>
+              <div class="champ">
+                <label class="champ__etiquette" for="afficheur_debit">Vitesse</label>
+                <select class="champ__liste" id="afficheur_debit">
+                  <option value="1200">1200 bauds</option>
+                  <option value="2400">2400 bauds</option>
+                  <option value="4800">4800 bauds</option>
+                  <option value="9600">9600 bauds</option>
+                  <option value="19200">19200 bauds</option>
+                  <option value="38400">38400 bauds</option>
+                </select>
+                <span class="champ__aide">9600 dans la quasi totalite des cas</span>
+              </div>
+            </div>
+
+            <div class="formulaire__ligne">
+              <div class="champ">
+                <label class="champ__etiquette" for="afficheur_protocole">Protocole</label>
+                <select class="champ__liste" id="afficheur_protocole">
+                  <option value="texte">Texte brut</option>
+                  <option value="cd5220">CD5220 (afficheur 2x20)</option>
+                  <option value="escpos">ESC/POS (afficheur chaine sur l imprimante)</option>
+                </select>
+                <span class="champ__aide">
+                  Commence par Texte brut. Si l ecran ne s efface pas entre deux clients,
+                  essaie CD5220.
+                </span>
+              </div>
+              <div class="champ">
+                <label class="champ__etiquette" for="afficheur_colonnes">Largeur</label>
+                <input
+                  class="champ__saisie"
+                  id="afficheur_colonnes"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                />
+                <span class="champ__aide">caracteres par ligne : 20 d ordinaire, 8 au moins</span>
+              </div>
+            </div>
+
+            <div class="formulaire__actions">
+              <button class="bouton bouton--principal" id="afficheur_enregistrer" type="button">
+                Enregistrer
+              </button>
+              <button class="bouton" id="afficheur_tester" type="button">
+                Afficher 123,45 pour voir
+              </button>
+              <button class="bouton" id="afficheur_effacer" type="button">Effacer l ecran</button>
+            </div>
+
+            <p class="champ__aide" id="afficheur_verdict">aucun envoi depuis le demarrage</p>
+          </div>
+        </div>
+
+        <div class="panneau" data-saisie="clavier">
+          <div class="vue_peripheriques__entete">
+            <div>
+              <h2 class="panneau__titre">Materiel detecte sur ce poste</h2>
+              <p class="panneau__intro">
+                Tout ce que Windows reconnait sur cette machine : ce qui est branche
+                (USB, serie, Bluetooth) et ce qui est integre (carte mere, PCI, ecran
+                tactile). La colonne <strong>Port</strong> donne le <code>COM</code> a
+                reporter dans l afficheur client ci-dessus.
+              </p>
+            </div>
+            <span class="badge badge--attente" id="badge_inventaire">non releve</span>
+          </div>
+
+          <div class="caisse__recherche" data-saisie="clavier">
+            <input
+              class="champ__saisie"
+              id="inventaire_recherche"
+              type="text"
+              placeholder="Chercher un nom, une famille, un port"
+              autocomplete="off"
+            />
+            <select class="champ__liste" id="inventaire_famille">
+              <option value="">Toutes les familles</option>
+            </select>
+            <button class="bouton" id="inventaire_relever" type="button">Relever le materiel</button>
+          </div>
+
+          <div class="cadre_tableau">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th>Appareil</th>
+                  <th>Famille</th>
+                  <th>Liaison</th>
+                  <th>Port</th>
+                  <th>Etat</th>
+                  <th>Fabricant</th>
+                </tr>
+              </thead>
+              <tbody id="inventaire_liste"></tbody>
+            </table>
+          </div>
+
+          <p class="champ__aide" id="inventaire_resume">
+            Appuie sur Relever le materiel : la lecture prend quelques secondes.
+          </p>
+        </div>
           </div>
 
           <!-- diagnostic -->
@@ -1459,6 +1786,7 @@
     <script src="scripts/peripheriques/scanner.js"></script>
     <script src="scripts/vues/diagnostic.js"></script>
     <script src="scripts/vues/imprimante.js"></script>
+    <script src="scripts/vues/afficheur.js"></script>
     <script src="scripts/vues/peripheriques.js"></script>
     <script src="scripts/vues/licence.js"></script>
     <script src="scripts/vues/caisse.js"></script>

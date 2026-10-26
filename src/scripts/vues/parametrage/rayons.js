@@ -3,8 +3,18 @@
 
   const element = global.format.element;
 
+  // Plafond de la version d essai, tenu par le noyau.
+  const ESSAI_RAYONS = 1;
+
   let liste = [];
   let enEdition = null;
+
+  function appliquerQuota() {
+    const atteint = global.vueLicence.quotaAtteint(liste.length, ESSAI_RAYONS);
+
+    element("rayon_quota").hidden = !atteint;
+    element("rayon_enregistrer").disabled = atteint && enEdition === null;
+  }
 
   function reinitialiserFormulaire() {
     enEdition = null;
@@ -39,6 +49,8 @@
   }
 
   function afficher() {
+    appliquerQuota();
+
     const corps = element("rayons_liste");
 
     global.format.vider(corps);

@@ -30,6 +30,21 @@ const CLE_POSTE: &str = "poste_empreinte";
 /// Duree de l essai gratuit, en jours pleins.
 pub const JOURS_ESSAI: i64 = 7;
 
+/*
+ * Plafonds de l essai gratuit.
+ *
+ * L essai sert a juger le logiciel sur une vraie caisse : une boutique
+ * complete s y programme en entier, et plus rien ne pousse a prendre une
+ * licence. Un caissier, un rayon et six produits suffisent a tout essayer,
+ * ventes et rapports compris, sans faire tourner un commerce.
+ *
+ * Ces plafonds sont tenus ici, dans le noyau. Le front grise les boutons par
+ * courtoisie : c est cette fonction qui refuse.
+ */
+pub const ESSAI_CAISSIERS: i64 = 1;
+pub const ESSAI_RAYONS: i64 = 1;
+pub const ESSAI_PRODUITS: i64 = 6;
+
 const OCTETS_EMPREINTE: usize = 8;
 
 pub const STATUT_ESSAI: &str = "essai";
@@ -125,6 +140,48 @@ pub fn exiger_active(connexion: &Connection) -> Resultat<()> {
     }
 
     Err(ErreurApplication::AccesRefuse(etat.message))
+}
+
+/// Vrai quand une licence valide ouvre ce poste.
+///
+/// Le drapeau `sous_licence` de l etat dit seulement qu une licence est
+/// posee : une licence illisible, expiree ou emise pour une autre caisse le
+/// porte aussi. Elle ne doit lever aucun plafond, sinon n importe quel texte
+/// dans le reglage vaudrait la version complete.
+pub fn sous_licence(connexion: &Connection) -> Resultat<bool> {
+    let etat = evaluer(connexion)?;
+
+    Ok(etat.sous_licence && etat.autorise)
+}
+
+/// Refuse une creation de plus quand l essai a rempli son quota. Une caisse
+/// sous licence n a aucun plafond.
+pub fn exiger_quota_essai(
+    connexion: &Connection,
+    objets: &str,
+    presents: i64,
+    maximum: i64,
+) -> Resultat<()> {
+    if sous_licence(connexion)? || presents < maximum {
+        return Ok(());
+    }
+
+    Err(ErreurApplication::AccesRefuse(format!(
+        "version d essai : {maximum} {objets} au maximum. Insere une licence pour aller au dela."
+    )))
+}
+
+/// Fonctions reservees a une caisse sous licence. L export et l import
+/// recopient une programmation entiere d un poste a l autre : pendant l essai,
+/// ce serait le moyen de peupler une caisse sans licence en un seul fichier.
+pub fn exiger_sous_licence(connexion: &Connection, quoi: &str) -> Resultat<()> {
+    if sous_licence(connexion)? {
+        return Ok(());
+    }
+
+    Err(ErreurApplication::AccesRefuse(format!(
+        "version d essai : {quoi} demande une licence. Parametrage --> Licence."
+    )))
 }
 
 /// Etat du droit d usage. Ecrit au passage le debut de l essai, le jour le
@@ -357,6 +414,46 @@ mod tests {
         assert_eq!(etat.jours_restants, JOURS_ESSAI);
         assert!(!etat.poste.is_empty());
         assert!(exiger_active(&connexion).is_ok());
+    }
+
+    #[test]
+    fn l_essai_plafonne_les_creations_et_ferme_l_export() {
+        let connexion = base();
+
+        // Sous le plafond : rien ne gene.
+        assert!(exiger_quota_essai(&connexion, "produits", 5, ESSAI_PRODUITS).is_ok());
+        assert!(exiger_quota_essai(&connexion, "caissier(s)", 0, ESSAI_CAISSIERS).is_ok());
+
+        // Au plafond, et au dela : refus.
+        let incident = exiger_quota_essai(&connexion, "produits", ESSAI_PRODUITS, ESSAI_PRODUITS)
+            .unwrap_err()
+            .to_string();
+
+        assert!(incident.contains("version d essai"));
+        assert!(incident.contains("6 produits"));
+        assert!(exiger_quota_essai(&connexion, "rayon(s)", 7, ESSAI_RAYONS).is_err());
+        assert!(exiger_quota_essai(&connexion, "caissier(s)", 1, ESSAI_CAISSIERS).is_err());
+
+        // L export et l import sont fermes tant qu aucune licence n est posee.
+        assert!(!sous_licence(&connexion).unwrap());
+        assert!(exiger_sous_licence(&connexion, "l export").is_err());
+    }
+
+    #[test]
+    fn une_licence_illisible_ne_leve_aucun_plafond() {
+        let connexion = base();
+
+        parametres::ecrire(&connexion, CLE_LICENCE, "licence-illisible").unwrap();
+
+        let etat = evaluer(&connexion).unwrap();
+
+        // Une licence est bien posee, mais elle n ouvre pas la caisse : les
+        // plafonds tiennent, et l export reste ferme.
+        assert!(etat.sous_licence);
+        assert!(!etat.autorise);
+        assert!(!sous_licence(&connexion).unwrap());
+        assert!(exiger_quota_essai(&connexion, "produits", 99, ESSAI_PRODUITS).is_err());
+        assert!(exiger_sous_licence(&connexion, "l export").is_err());
     }
 
     #[test]

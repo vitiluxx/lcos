@@ -22,6 +22,8 @@ use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
 use crate::securite::RegistreJetons;
 
+use super::licence;
+
 const LOGICIEL: &str = "LCOS";
 const FORMAT: i64 = 1;
 
@@ -83,6 +85,9 @@ pub struct EtatTransfert {
     pub resume: transfert::Resume,
     pub ventes_en_memoire: i64,
     pub session_ouverte: bool,
+    /// Faux pendant l essai : l ecran grise l export et l import, que le
+    /// noyau refuse de toute facon.
+    pub sous_licence: bool,
     pub fichiers: Vec<FichierSauvegarde>,
 }
 
@@ -115,6 +120,7 @@ pub fn recuperer_etat_transfert(
             ventes_en_memoire: resume.ventes,
             resume,
             session_ouverte: sessions::ouverte(connexion)?.is_some(),
+            sous_licence: licence::sous_licence(connexion)?,
             fichiers: lister(&cible),
         })
     })
@@ -131,6 +137,8 @@ pub fn exporter_sauvegarde(
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
     let cible = resoudre_dossier(dossier)?;
+
+    depot.executer(|connexion| licence::exiger_sous_licence(connexion, "l export"))?;
 
     std::fs::create_dir_all(&cible)?;
 
@@ -187,6 +195,8 @@ pub fn importer_sauvegarde(
     avec_donnees: bool,
 ) -> Resultat<ResultatTransfert> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    depot.executer(|connexion| licence::exiger_sous_licence(connexion, "l import"))?;
 
     let fichier = valider_chemin(&chemin)?;
     let octets = std::fs::metadata(&fichier)?.len();
@@ -292,7 +302,7 @@ fn analyser(texte: &str) -> Resultat<Sauvegarde> {
 
 /// `Documents\LCOS` du compte Windows : un dossier que le gerant retrouve sans
 /// explication, et ou l ecriture ne demande aucun privilege.
-fn dossier_par_defaut() -> PathBuf {
+pub(crate) fn dossier_par_defaut() -> PathBuf {
     match std::env::var("USERPROFILE") {
         Ok(profil) if !profil.trim().is_empty() => {
             Path::new(&profil).join("Documents").join(DOSSIER_SAUVEGARDES)

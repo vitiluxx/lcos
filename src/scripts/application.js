@@ -176,6 +176,9 @@
 
     document.addEventListener("keydown", function (evenement) {
       if (evenement.key === "Escape" && menuOuvert()) {
+        // Consomme la touche : sinon le meme Echap refermerait le menu et
+        // defferait en plus le dernier geste de la caisse.
+        evenement.preventDefault();
         ouvrirMenu(false);
       }
     });
@@ -204,11 +207,12 @@
     await rafraichirEtat();
     await global.vueParametrage.rafraichir();
 
-    // Reglages lisibles sans le code du gerant : la cadence de la douchette et
-    // la voie d impression doivent etre connues des le premier scan, meme si
-    // personne n ouvre le parametrage.
+    // Reglages lisibles sans le code du gerant : la cadence de la douchette, la
+    // voie d impression et l afficheur client doivent etre connus des le
+    // premier scan, meme si personne n ouvre le parametrage.
     global.vuePeripheriques.rafraichir();
     global.vueImprimante.rafraichir();
+    global.vueAfficheur.rafraichir();
 
     // Caisse fermee : licence d abord. Sinon, caisse non protegee : creation du
     // compte gerant. Sinon : ecran de travail.

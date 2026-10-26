@@ -44,14 +44,12 @@
     global.format.vider(liste);
 
     if (!fichiers.length) {
-      liste.appendChild(new Option("Aucun fichier dans ce dossier", ""));
-      liste.disabled = true;
+      liste.appendChild(new Option("Aucun fichier .json dans ce dossier", ""));
       element("transfert_fichier_aide").textContent =
-        "aucun fichier .json dans ce dossier : verifie le chemin, puis Relire le dossier";
+        "aucun fichier .json dans ce dossier : corrige le dossier plus haut puis Relire le " +
+        "dossier, ou tape le chemin complet du fichier ci-dessous";
       return;
     }
-
-    liste.disabled = false;
 
     fichiers.forEach(function (fichier) {
       const etiquette =
@@ -74,7 +72,19 @@
     afficherFichierChoisi();
   }
 
+  // Chemin tape a la main : la cle USB n est pas toujours le dossier
+  // d export, et un select vide ne doit pas fermer l import.
+  function cheminSaisi() {
+    return element("transfert_chemin").value.trim();
+  }
+
   function fichierChoisi() {
+    const saisi = cheminSaisi();
+
+    if (saisi) {
+      return { chemin: saisi, utilisable: true, contenu: "inconnu", saisi: true };
+    }
+
     const chemin = element("transfert_fichier").value;
 
     if (!etat || !chemin) {
@@ -97,6 +107,11 @@
       return;
     }
 
+    if (fichier.saisi) {
+      aide.textContent = "chemin tape a la main : " + fichier.chemin;
+      return;
+    }
+
     if (!fichier.utilisable) {
       aide.textContent = "ce fichier n est pas une sauvegarde LCOS relisible";
       return;
@@ -111,7 +126,31 @@
   }
 
   function appliquerConfirmation() {
-    element("transfert_importer").disabled = !element("transfert_confirmation").checked;
+    element("transfert_importer").disabled =
+      !element("transfert_confirmation").checked || !sousLicence();
+  }
+
+  function sousLicence() {
+    return !etat || etat.sous_licence;
+  }
+
+  // Version d essai : l export et l import sont les seules fonctions fermees.
+  // Le reste de l ecran reste lisible, y compris le resume du contenu.
+  function appliquerLicence() {
+    const essai = !sousLicence();
+
+    element("transfert_essai").hidden = !essai;
+
+    [
+      "transfert_exporter_parametrage",
+      "transfert_exporter_complet",
+      "transfert_fichier",
+      "transfert_chemin",
+      "transfert_avec_donnees",
+      "transfert_confirmation"
+    ].forEach(function (identifiant) {
+      element(identifiant).disabled = essai;
+    });
   }
 
   function appliquer(nouvel) {
@@ -134,6 +173,7 @@
       "par defaut : " + nouvel.dossier_defaut;
 
     remplirFichiers(nouvel.fichiers);
+    appliquerLicence();
     appliquerConfirmation();
   }
 
@@ -236,6 +276,8 @@
 
   function initialiser() {
     element("transfert_relire").addEventListener("click", rafraichir);
+    element("transfert_relire_import").addEventListener("click", rafraichir);
+    element("transfert_chemin").addEventListener("input", afficherFichierChoisi);
     element("transfert_dossier").addEventListener("change", rafraichir);
     element("transfert_fichier").addEventListener("change", afficherFichierChoisi);
     element("transfert_confirmation").addEventListener("change", appliquerConfirmation);

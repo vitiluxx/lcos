@@ -24,17 +24,26 @@
     badge.className = actif ? "badge badge--succes" : "badge badge--attente";
   }
 
+  function afficherBadgeAnnulation(actif) {
+    const badge = element("badge_annulation_vente");
+
+    badge.textContent = actif ? "activee" : "desactivee";
+    badge.className = actif ? "badge badge--alerte" : "badge badge--attente";
+  }
+
   function appliquer(reglages) {
     element("commerce_nom").value = reglages.nom_commerce;
     element("commerce_devise").value = reglages.devise;
     element("commerce_decimales").value = reglages.decimales > 0 ? "2" : "0";
     element("ticket_actif").checked = reglages.ticket_actif;
     element("impression_recu").checked = reglages.impression_recu;
+    element("annulation_vente").checked = reglages.annulation_vente;
     element("ticket_colonnes").value = String(reglages.ticket_largeur_colonnes);
     element("ticket_entete").value = reglages.ticket_entete;
     element("ticket_pied").value = reglages.ticket_pied;
 
     afficherBadgeRecu(reglages.impression_recu);
+    afficherBadgeAnnulation(reglages.annulation_vente);
     global.format.definirDecimales(reglages.decimales);
   }
 
@@ -113,10 +122,34 @@
     }
   }
 
+  // Ouverture de l annulation des ventes. Geste rare et lourd de consequence :
+  // il reste isole de l enregistrement des autres reglages.
+  async function appliquerAnnulationVente() {
+    const actif = element("annulation_vente").checked;
+
+    try {
+      const reglages = await global.pont.appeler("basculer_annulation_vente", {
+        jeton: global.acces.exiger(),
+        actif: actif
+      });
+
+      appliquer(reglages);
+      global.notifier.succes(
+        actif
+          ? "Annulation des ventes autorisee depuis l ecran Session."
+          : "Annulation des ventes interdite. Les ventes deja faites sont definitives."
+      );
+      global.vueSession.rafraichir();
+    } catch (incident) {
+      global.notifier.incident(incident);
+    }
+  }
+
   function initialiser() {
     element("commerce_enregistrer").addEventListener("click", enregistrer);
     element("commerce_devise").addEventListener("change", surDevise);
     element("impression_recu_appliquer").addEventListener("click", appliquerImpressionRecu);
+    element("annulation_vente_appliquer").addEventListener("click", appliquerAnnulationVente);
   }
 
   global.reglageCommerce = {

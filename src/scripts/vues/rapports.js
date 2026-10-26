@@ -29,6 +29,7 @@
     element("rapports_razs").textContent = String(rapport.donnees.remises_a_zero);
     element("rapports_numero_ticket").textContent = String(rapport.donnees.dernier_ticket);
     element("rapports_alerte_session").hidden = !rapport.session_ouverte;
+    element("rapports_export_alerte").hidden = !rapport.session_ouverte;
   }
 
   function afficherTexte(texte) {
@@ -47,7 +48,7 @@
     global.format.vider(corps);
 
     if (!ventes.length) {
-      corps.appendChild(global.format.ligneVide(6, "Aucune vente en memoire."));
+      corps.appendChild(global.format.ligneVide(7, "Aucune vente en memoire."));
       return;
     }
 
@@ -57,6 +58,7 @@
       ligne.appendChild(global.format.cellule("no " + vente.numero_ticket));
       ligne.appendChild(global.format.cellule(vente.horodatage));
       ligne.appendChild(global.format.cellule(vente.caissier));
+      ligne.appendChild(global.format.cellule(vente.articles || "--"));
       ligne.appendChild(global.format.cellule(vente.nombre_articles, "tableau__chiffre"));
       ligne.appendChild(
         global.format.cellule(global.format.monnaie(vente.total_centimes), "tableau__chiffre")
@@ -94,6 +96,37 @@
       ligne.appendChild(global.format.cellule(total.quantite, "tableau__chiffre"));
       ligne.appendChild(
         global.format.cellule(global.format.monnaie(total.total_centimes), "tableau__chiffre")
+      );
+
+      corps.appendChild(ligne);
+    });
+  }
+
+  // Trace des annulations de la periode. Une vente annulee quitte le journal :
+  // c est le seul endroit ou le trou dans la suite des tickets s explique.
+  function afficherAnnulations(annulations) {
+    const corps = element("rapports_annulations");
+
+    global.format.vider(corps);
+
+    if (!annulations.length) {
+      corps.appendChild(global.format.ligneVide(6, "Aucune vente annulee."));
+      return;
+    }
+
+    annulations.forEach(function (annulation) {
+      const ligne = global.format.creer("tr");
+
+      ligne.appendChild(global.format.cellule("no " + annulation.numero_ticket));
+      ligne.appendChild(global.format.cellule(annulation.encaissee_le));
+      ligne.appendChild(global.format.cellule(annulation.caissier));
+      ligne.appendChild(global.format.cellule(annulation.annulee_le));
+      ligne.appendChild(global.format.cellule(annulation.annulee_par));
+      ligne.appendChild(
+        global.format.cellule(
+          global.format.monnaie(annulation.total_centimes),
+          "tableau__chiffre"
+        )
       );
 
       corps.appendChild(ligne);
@@ -203,6 +236,41 @@
     }
   }
 
+  // Export du detail puis remise a zero. Le noyau ecrit le fichier avant
+  // d effacer : un fichier absent veut dire une periode intacte.
+  async function exporterEtVider() {
+    const resultat = element("rapports_export_resultat");
+
+    try {
+      const sortie = await global.pont.appeler("exporter_ventes_et_vider", {
+        jeton: global.acces.exiger()
+      });
+
+      afficherTexte(sortie.rapport.texte);
+      element("rapports_cloture").hidden = true;
+      element("rapports_export_confirmation").checked = false;
+      element("rapports_exporter_vider").disabled = true;
+
+      resultat.textContent =
+        sortie.lignes +
+        " ligne(s) d articles ecrite(s) dans " +
+        sortie.chemin +
+        " - memoire des ventes effacee (rapport Z no " +
+        sortie.rapport.donnees.numero +
+        ").";
+      resultat.hidden = false;
+
+      global.notifier.succes("Detail exporte dans " + sortie.nom + ". Memoire des ventes effacee.");
+
+      await rafraichir();
+      global.application.rafraichirEtat();
+      global.vueCaisse.rafraichir();
+    } catch (incident) {
+      resultat.hidden = true;
+      global.notifier.incident(incident);
+    }
+  }
+
   async function rafraichir() {
     if (!global.acces.actif()) {
       appliquerVisibilite();
@@ -215,7 +283,7 @@
       const jeton = global.acces.exiger();
       const caissierChoisi = element("rapports_filtre_caissier").value;
 
-      const [rapport, ventes, totaux, caissiers, archives] = await Promise.all([
+      const [rapport, ventes, totaux, caissiers, archives, annulations] = await Promise.all([
         global.pont.appeler("previsualiser_rapport_z", { jeton: jeton }),
         global.pont.appeler("lister_ventes", {
           jeton: jeton,
@@ -223,7 +291,8 @@
         }),
         global.pont.appeler("recuperer_totaux_caissiers", { jeton: jeton }),
         global.pont.appeler("lister_caissiers", { jeton: jeton }),
-        global.pont.appeler("lister_rapports_z", { jeton: jeton })
+        global.pont.appeler("lister_rapports_z", { jeton: jeton }),
+        global.pont.appeler("lister_ventes_annulees", { jeton: jeton })
       ]);
 
       afficherMesures(rapport);
@@ -231,6 +300,7 @@
       afficherTotaux(totaux);
       remplirCaissiers(caissiers);
       afficherArchives(archives);
+      afficherAnnulations(annulations);
     } catch (incident) {
       global.notifier.incident(incident);
     }
@@ -244,6 +314,12 @@
 
     element("rapports_confirmation").addEventListener("change", function (evenement) {
       element("rapports_cloturer").disabled = !evenement.target.checked;
+    });
+
+    element("rapports_exporter_vider").addEventListener("click", exporterEtVider);
+
+    element("rapports_export_confirmation").addEventListener("change", function (evenement) {
+      element("rapports_exporter_vider").disabled = !evenement.target.checked;
     });
 
     element("rapports_imprimer").addEventListener("click", function () {

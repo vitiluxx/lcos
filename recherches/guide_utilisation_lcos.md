@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.6.0
+# Guide d utilisation LCOS 1.9.0
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -14,7 +14,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.6.0`.
+barres**, en haut a droite, juste a cote de `version 1.9.0`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -24,7 +24,7 @@ touche `Echap` referme la liste.
 | Ecran | Emplacement | A quoi il sert |
 |---|---|---|
 | Caisse | `icone --> Caisse` | Encaisser les clients. C est l ecran de travail. |
-| Session | `icone --> Session` | Ouvrir et fermer la journee d un caissier. |
+| Session | `icone --> Session` | Ouvrir et fermer la journee d un caissier, relire les ventes enregistrees, et les annuler si le gerant l autorise. |
 | Parametrage | `icone --> Parametrage` | Tout creer, tout modifier, tout consulter. Protege par le code du gerant. |
 
 Tout le reste vit dans le Parametrage, en sous-onglets :
@@ -57,7 +57,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.6.0_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.0_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -84,8 +84,30 @@ droite de l entete (`essai : 7 j`), qui ouvre le meme ecran.
 
 ### L essai gratuit
 
-Une caisse neuve fonctionne **entierement pendant sept jours**, sans rien saisir :
-installe, programme, vends, juge. Le badge de l entete decompte les jours restants.
+Une caisse neuve fonctionne pendant **sept jours**, sans rien saisir : installe,
+programme, vends, juge. Le badge de l entete decompte les jours restants.
+
+Tout fonctionne pendant l essai : les ventes, les tickets, les rapports Z, l annulation,
+la douchette, l imprimante, l afficheur client. Quatre choses seulement sont plafonnees,
+le temps de juger le logiciel :
+
+| Pendant l essai | Plafond |
+|---|---|
+| Caissiers | 1 |
+| Rayons | 1 |
+| Produits | 6 |
+| Export et import du parametrage | fermes |
+
+Le bouton `Creer` se grise des que le plafond est atteint, et un avertissement le dit
+au-dessus du formulaire. L insertion d une licence leve les quatre plafonds dans la
+seconde, sans rien resaisir : les comptes, rayons et produits deja crees restent en
+place.
+
+*Pourquoi ces plafonds :* une boutique entiere programmee pendant l essai n a plus
+aucune raison de prendre une licence. Un caissier, un rayon et six produits suffisent a
+essayer la caisse pour de vrai, ventes et rapports compris. Et l export, lui, recopierait
+une programmation complete d un poste a l autre : ce serait la porte ouverte pour peupler
+une caisse sans licence en un seul fichier.
 
 ### Apres l essai
 
@@ -399,6 +421,34 @@ Le badge du panneau indique l etat courant : `activee` ou `desactivee`.
 *Pourquoi un bouton a part :* c est un geste quotidien. Couper les recus un jour de
 penurie de rouleau ne doit pas obliger a rouvrir tout le reglage du ticket.
 
+### 4.3 bis Annulation des ventes
+
+**Emplacement** : `LCOS --> Parametrage --> Commerce et ticket --> Annulation des ventes`
+
+```
+case Autoriser l annulation d une vente deja encaissee --> bouton Appliquer
+```
+
+Le badge du panneau dit l etat courant : `activee` ou `desactivee`. **A l installation,
+l option est fermee.**
+
+| Etat | Ce qui est possible dans l ecran Session |
+|---|---|
+| `desactivee` | Les ventes se lisent, rien ne s annule. Aucune croix sur les lignes, la touche `Suppr` ne fait rien. |
+| `activee` | Une croix apparait sur chaque ligne, et la touche `Suppr` agit sur la vente choisie. Un code est demande a chaque annulation. |
+
+Ce que fait une annulation, en une fois : la vente quitte le journal, le stock des
+articles revient, les totaux de la session et du rapport Z redescendent, et une trace
+nominative part dans `LCOS --> Parametrage --> Rapports --> Ventes annulees`.
+
+Ce qu une annulation ne fait pas : **rendre le numero de ticket**. Le ticket annule
+reste consomme, le suivant prend le numero d apres. Le trou dans la suite des numeros
+s explique dans le tableau des ventes annulees.
+
+*Pourquoi ferme par defaut :* une caisse ou n importe qui efface une vente est une
+caisse sans comptabilite. C est au gerant d ouvrir cette porte, en sachant que chaque
+annulation laisse le nom de qui l a faite.
+
 ### 4.4 Date et heure
 
 **Emplacement** : `LCOS --> Parametrage --> Date et heure`
@@ -456,6 +506,9 @@ demarrage au lieu de la repeter.
 Un caissier qui a deja des ventes **ne peut pas** etre supprime : desactive-le. Il
 disparait de l ecran d ouverture de session mais ses ventes restent dans les rapports.
 
+*Version d essai :* un seul caissier. Le bouton `Creer` est grise au-dela, et
+l avertissement renvoie a la licence (chapitre 2 bis).
+
 ### 4.6 Rayons
 
 **Emplacement** : `LCOS --> Parametrage --> Rayons`
@@ -470,6 +523,8 @@ disparait de l ecran d ouverture de session mais ses ventes restent dans les rap
 
 Un rayon qui contient des produits ne peut pas etre supprime : vide-le d abord, ou
 decoche simplement `Rayon actif`.
+
+*Version d essai :* un seul rayon.
 
 ### 4.7 Produits
 
@@ -507,6 +562,8 @@ toucher, depuis la grille de l onglet Caisse.
 *Pourquoi scanner dans le champ :* le code recopie est exactement celui que la
 douchette enverra en caisse. Le taper a la main expose a une faute d un chiffre.
 
+*Version d essai :* six produits au maximum.
+
 ### 4.8 Code du gerant
 
 **Emplacement** : `LCOS --> Parametrage --> Code du gerant`
@@ -530,6 +587,10 @@ par LCOS. Deux portees, jamais melangees :
 Le premier panneau annonce ce que la caisse contient : produits, rayons, comptes,
 reglages, ventes en memoire, rapports Z archives.
 
+**Version d essai : l export et l import sont fermes.** Les boutons et les champs sont
+grises, un avertissement le rappelle en haut de l ecran, et le reste de la caisse
+fonctionne normalement. Insere une licence pour les ouvrir (chapitre 2 bis).
+
 #### Exporter
 
 ```
@@ -549,9 +610,22 @@ champ Dossier --> bouton Exporter le parametrage seul (ou Exporter avec les vent
 bouton Relire le dossier --> liste Fichier du dossier --> case de confirmation --> bouton Importer ce fichier
 ```
 
+Deux facons de designer le fichier, au choix :
+
+1. **La liste `Fichier du dossier`** : elle montre les fichiers `.json` du dossier
+   indique dans le panneau `Exporter` juste au-dessus. Le dossier n est pas le bon ?
+   Corrige-le la-haut, puis `Relire le dossier`. Le bouton est repete dans le panneau
+   d import pour ne pas avoir a remonter.
+2. **Le champ `Ou chemin complet du fichier`** : tape le chemin entier, par exemple
+   `E:\lcos_parametrage_20261025-1830.json`. Rempli, ce champ **prime sur la liste**.
+   C est la voie a prendre quand la cle USB n est pas le dossier d export, ou quand la
+   liste reste vide.
+
 - La liste decrit chaque fichier : portee, date de generation, version de LCOS qui l a
   ecrit, taille. Un fichier qui n est pas une sauvegarde LCOS est marque `illisible` et
   sera refuse.
+- `Aucun fichier .json dans ce dossier` n est pas une panne : c est qu il n y a rien a
+  importer la. La liste reste cliquable, et le champ du chemin complet prend le relais.
 - `Importer aussi les ventes, sessions, compteurs et rapports Z` : a cocher uniquement
   pour restaurer une sauvegarde complete sur la meme caisse.
 - Le bouton reste grise jusqu a la coche de confirmation.
@@ -605,7 +679,7 @@ sont rattachees au caissier de la session, c est ce qui permet de lire ses totau
 
 | Mode | Quand | Ce que fait la calculatrice |
 |---|---|---|
-| `Mode scan` | Par defaut. Articles etiquetes. | Saisit la somme recue du client. |
+| `Mode scan` | Par defaut. Articles etiquetes. | Saisit la somme recue du client, deja posee au total par la touche `Entree`. La touche `*` multiplie la derniere ligne lue. |
 | `Mode manuel` | Articles sans etiquette, prix dictes. | Saisit le prix de chaque article. |
 
 *Pourquoi :* changer de mode remet la vente a zero. Choisis le mode avant de commencer
@@ -616,20 +690,52 @@ a encaisser le client.
 **Emplacement** : `LCOS --> Caisse --> bouton Mode scan`
 
 ```
-scanner les articles --> taper la somme recue --> touche Entree
+scanner les articles --> touche Entree --> touche Entree
 ```
 
 1. **Scanner** : chaque bip ajoute l article, le total se met a jour tout seul. Scanner
-   deux fois le meme article passe la quantite a 2.
+   deux fois le meme article passe la quantite a 2. Pour dix exemplaires du meme
+   article : un seul bip, puis la touche `*` (voir juste en dessous).
 2. **Sans code-barres** : touche la pastille du produit dans la grille en bas, ou tape
    son nom dans `Chercher un article par nom ou code`.
 3. **Corriger une ligne** : boutons `-`, `+` et `x` a droite de la ligne du panier.
-4. **Somme recue** : tape les chiffres au clavier. Ils s inscrivent dans
-   `Somme recue du client`.
-5. **A rendre** : le reliquat s affiche en direct sous le montant.
-6. **Valider** : touche `Entree`, ou bouton `Encaisser (Entree)`.
+4. **Premiere `Entree`** : le total se pose tout seul dans `Somme recue du client`,
+   en bleu `Compte juste`.
+5. **Client qui paie juste** : touche `Entree` une seconde fois, c est encaisse.
+6. **Client qui donne plus** : tape le montant recu. Le premier chiffre remplace le
+   total pose, et `A rendre` affiche le reliquat en direct. Puis touche `Entree`.
+7. Un article scanne apres la premiere `Entree` reste pris en compte : le total pose
+   suit le panier.
+8. `Echap` efface la somme posee ; un second `Echap` retire la derniere ligne du panier.
+
+*Pourquoi deux `Entree` :* le compte juste est le cas le plus courant de la journee. Il
+ne coute plus une seule frappe de chiffre, et la seconde `Entree` reste la validation
+qui empeche d encaisser une vente a moitie saisie.
+
+Le bouton `Compte juste` du pave pose la meme somme a la souris ou au doigt.
 
 Le ticket s affiche dans la colonne de droite --> bouton `Imprimer` si besoin.
+
+#### Multiplier un article scanne : la touche *
+
+Le code-barres est le meme sur chaque exemplaire : inutile de scanner dix fois la meme
+bouteille.
+
+```
+scanner l article une fois --> touche * --> taper la quantite --> touche Entree
+```
+
+- Le champ `Quantite de l article` apparait, et l aide dessous donne le calcul en
+  direct : `Coca 33cl : 500,00 x 4 = 2 000,00`.
+- `Entree` (ou la touche `x` du pave, ou `+`) pose la quantite sur la ligne : elle
+  **remplace** la quantite, elle ne s y ajoute pas.
+- `Echap` annule la multiplication, la ligne garde sa quantite.
+- Un nouveau scan pendant la saisie ferme la multiplication : elle visait la ligne
+  precedente.
+- La touche `*` sans aucun article dit `Scanne d abord un article`.
+
+La touche `x` du pave fait la meme chose au doigt : un premier appui ouvre la quantite,
+le second la valide.
 
 ### 5.4 Encaisser en mode manuel
 
@@ -646,12 +752,34 @@ touche Entree --> taper la somme recue --> touche Entree
    le panier, le champ se vide pour le suivant.
 3. Le libelle au-dessus du gros chiffre affiche `Sommation` : le cumul monte a chaque
    `+`.
-4. Touche `Entree` : la sommation est fermee, le libelle repasse a `Total a payer` et
-   le curseur saute sur `Somme recue du client`.
-5. Tape la somme recue --> touche `Entree` pour encaisser.
+4. Touche `Entree` : la sommation est fermee, le libelle repasse a `Total a payer`, le
+   curseur saute sur `Somme recue du client` **et ce champ porte deja le total**, en
+   bleu `Compte juste`.
+5. Client qui paie juste : touche `Entree` tout de suite, c est encaisse. Client qui
+   donne plus : tape le montant recu, le premier chiffre remplace le total pose, et
+   `A rendre` s affiche. Puis `Entree`.
 
 *Pourquoi deux validations :* la premiere `Entree` fige le total, la seconde encaisse.
 Sans cette separation, une frappe de trop validerait une vente incomplete.
+
+*Pourquoi le total est deja pose :* le compte juste est le cas le plus courant de la
+journee. Il ne coute plus une seule frappe de chiffre.
+
+#### Multiplier un prix : la touche *
+
+Meme article pris en plusieurs exemplaires, un seul prix a taper :
+
+```
+taper le prix --> touche * --> taper la quantite --> touche +
+```
+
+- Le champ affiche `1500 x 3`, et la ligne d aide dessous donne le calcul en direct :
+  `1 500,00 x 3 = 4 500,00`.
+- Touche `+` : une seule ligne entre au panier, prix unitaire et quantite separes, comme
+  pour un article scanne trois fois.
+- Touche `Entree` a la place de `+` : l article entre **et** la sommation se ferme.
+- Quantite maximale : 9999.
+- `Echap` avant d avoir fini : la multiplication est retiree, le prix reste.
 
 ### 5.5 Le code couleur de la somme recue
 
@@ -668,11 +796,35 @@ rouge, le bouton `Encaisser` reste grise et la vente ne part pas.
 
 | Touche | Effet | Emplacement du bouton equivalent |
 |---|---|---|
-| `0` a `9` | Chiffres de la somme recue | Pave de l onglet Caisse |
+| `0` a `9` | Chiffres de la somme recue, ou du prix en mode manuel | Pave de l onglet Caisse |
 | `,` | Separateur des centimes | Touche `,` du pave |
+| `*` | Mode manuel : multiplie le prix tape. Mode scan : multiplie la derniere ligne du panier | Touche `x` du pave |
+| `+` | Ajoute l article au panier (mode manuel), ou valide une quantite | Bouton `+ Ajouter l article` |
 | `Retour arriere` | Efface le dernier chiffre | Touche fleche du pave |
-| `Entree` | Valide la vente | Bouton `Encaisser (Entree)` |
-| `Echap` | Annule toute la vente | Bouton `Annuler la vente (Echap)` |
+| `Entree` | Ferme la sommation, puis valide la vente | Bouton `Encaisser (Entree)` |
+| `Echap` | **Defait le dernier geste**, un a la fois | aucun |
+
+Aucune autre touche n est prise en compte dans l ecran Caisse.
+
+#### Ce que defait la touche Echap
+
+`Echap` revient en arriere d un cran, le geste le plus recent d abord. Elle ne jette
+jamais la vente entiere.
+
+| Situation | Ce que fait `Echap` |
+|---|---|
+| Curseur sur `Somme recue du client`, mode manuel | Le champ `Prix de l article` revient, le panier est intact, la sommation reprend ou elle s etait arretee |
+| Multiplication en cours (`1500 x 3`) | La multiplication est retiree, le prix reste |
+| Un prix en cours de frappe | Le prix est efface, le panier reste |
+| Une somme recue tapee | Le montant est efface, le panier reste |
+| Rien dans les champs | La derniere ligne du panier s en va, et ainsi de suite |
+| Panier vide | `Rien a defaire` |
+
+Pour jeter la vente en cours d un seul geste : bouton `Annuler la vente`. Pour annuler
+une vente **deja encaissee** : chapitre 5.8.
+
+*Pourquoi :* une frappe de trop sur `Echap` ne doit pas couter un panier de vingt
+articles un samedi midi.
 
 Deux touches qui font gagner du temps :
 
@@ -710,6 +862,37 @@ bloquer la caisse ni la cloture du jour.
 
 ---
 
+### 5.8 Annuler une vente deja encaissee
+
+**Emplacement** : `LCOS --> icone a trois barres --> Session --> panneau Ventes enregistrees`
+
+Possible seulement si le gerant a ouvert l option (chapitre 4.3 bis). Sinon le panneau
+se lit, mais rien ne s y annule.
+
+Le panneau liste **toutes les ventes de la periode**, la plus recente en haut. Quatre
+lignes sont visibles : descends dans la liste pour voir les precedentes.
+
+```
+clic sur la ligne de la vente --> touche Suppr (ou clic sur la croix x)
+--> taper le code --> bouton Annuler cette vente
+```
+
+- Le code attendu est celui **du caissier qui a fait la vente**, ou celui du **gerant**.
+- La question affiche le numero du ticket, le montant, le caissier et l heure : relis-la
+  avant de valider.
+- Mauvais code : `code du caissier de la vente ou du gerant attendu`. La vente reste.
+- Bouton `Renoncer` : la demande se referme, rien n est touche.
+
+Apres l annulation : le stock des articles est rendu, les totaux de la session et du
+rapport Z redescendent, et la ligne part dans
+`LCOS --> Parametrage --> Rapports --> Ventes annulees` avec le nom de qui l a annulee.
+
+*Pourquoi un code a chaque fois :* la croix et la touche `Suppr` sont des gestes rapides.
+Une vente, elle, est de l argent deja compte. Le code est a la fois la confirmation et
+la signature.
+
+---
+
 ## 6. Rapports et remise a zero
 
 **Emplacement** : `LCOS --> Parametrage --> Rapports`
@@ -720,8 +903,12 @@ L onglet exige le code du gerant : `bouton Saisir le code du gerant --> Parametr
 
 | Bloc | Emplacement | Contenu |
 |---|---|---|
-| Compteurs | `Rapports` (haut de page) | Ventes en memoire, total, grand total, nombre de remises a zero, dernier numero de ticket |
+| Compteurs | `Rapports` (haut de page) | Ventes en memoire, `Total vente` (ce que les ventes de la periode ont rapporte), grand total, nombre de remises a zero, dernier numero de ticket |
 | Journal | `Rapports --> Ventes des caissiers` | Une ligne par vente. Liste `Tous les caissiers` pour filtrer, bouton `Rafraichir` pour recharger |
+
+Les colonnes du journal : `Ticket`, `Date`, `Caissier`, **`Articles`** (les noms des
+articles vendus, avec `x3` quand la ligne en portait trois), `Qte` (le nombre d articles
+du ticket), `Total`.
 | Ticket d une vente | `Rapports --> Ventes des caissiers --> ligne --> bouton Ticket` | Reaffiche le ticket, reimprimable |
 | Totaux | `Rapports --> Totaux par caissier` | Nombre de ventes et montant encaisse par caissier |
 
@@ -746,6 +933,64 @@ fermer la session --> bouton Previsualiser le rapport Z --> case Je confirme l e
 - toute la programmation : rayons, produits, caissiers, compte gerant, reglages.
 
 La cloture est refusee si une session est encore ouverte, ou s il n y a aucune vente.
+
+### 6.2 bis Lire les ventes annulees
+
+**Emplacement** : `LCOS --> Parametrage --> Rapports --> Ventes annulees`
+
+Une ligne par vente retiree du journal depuis la derniere remise a zero :
+
+| Colonne | Ce qu elle dit |
+|---|---|
+| `Ticket` | Le numero annule, celui qui manque dans la suite |
+| `Encaissee le` | Quand la vente avait ete faite |
+| `Caissier` | Qui l avait encaissee |
+| `Annulee le` | Quand elle a ete annulee |
+| `Par` | Le compte dont le code a servi a l annuler |
+| `Total` | Le montant sorti de la caisse |
+
+La remise a zero emporte ce tableau avec les ventes de la periode : il decrit la periode
+en cours, pas toute la vie de la caisse. Imprime ou note le rapport Z avant de repartir
+a zero si ces lignes doivent etre gardees.
+
+### 6.2 ter Exporter le detail des ventes et vider la memoire
+
+**Emplacement** : `LCOS --> Parametrage --> Rapports --> Vider la memoire des ventes`
+
+```
+fermer la session --> case Je confirme l export du detail puis l effacement des ventes
+--> bouton Exporter le detail et vider la memoire
+```
+
+Un seul geste pour deux choses : le detail part dans un fichier, puis la periode repart
+a zero exactement comme le rapport Z du chapitre 6.2.
+
+**Le fichier** : `lcos_ventes_AAAAMMJJ-HHMM.csv`, dans `Documents\LCOS` (le meme dossier
+que les sauvegardes). Le chemin complet s affiche sous le bouton apres l operation.
+Double clic sur le fichier : il s ouvre dans Excel ou LibreOffice Calc.
+
+**Ce qu il contient**, dans l ordre :
+
+| Bloc | Contenu |
+|---|---|
+| Entete | Nom du commerce, numero du rapport Z, date d edition, premiere et derniere vente, plage des numeros de ticket, nombre de ventes, nombre d articles, total vente, grand total |
+| `Detail des ventes` | **Une ligne par article vendu** : ticket, date et heure, caissier, article, code-barres, rayon, quantite, prix unitaire, total de la ligne, total du ticket, somme recue, rendu |
+| `Totaux par caissier` | Nombre de ventes et montant par caissier |
+| `Totaux par rayon` | Quantite et montant par rayon |
+
+Une ligne par article, c est ce qui permet de trier, filtrer et faire un tableau croise
+dans le tableur : c est le seul endroit ou le detail des ventes survit a la remise a
+zero.
+
+**Ce qui est efface, ce qui reste** : exactement comme le rapport Z. Les ventes et leur
+detail partent ; les grands totaux, le compteur de remises a zero, le numero de ticket
+et toute la programmation restent. Un rapport Z est edite et archive au passage, donc il
+reste relisible dans `Rapports Z archives`.
+
+**Refus possibles** : une session de caisse encore ouverte, ou aucune vente en memoire.
+
+*Pourquoi le fichier d abord :* LCOS ecrit le fichier **avant** d effacer. Si l ecriture
+echoue (cle retiree, disque plein), rien n est efface. Pas de fichier, donc pas de perte.
 
 ### 6.3 Relire un ancien rapport Z
 
@@ -819,6 +1064,96 @@ tient sur une seule ligne, la largeur du ticket est correcte. Sinon :
 
 ---
 
+## 7 ter. Afficheur client (le petit ecran du client)
+
+**Emplacement** : `LCOS --> Parametrage --> Peripheriques --> Afficheur client`
+
+C est le petit ecran tourne vers le client, a l arriere de la caisse. Il n affiche qu une
+somme : le **total a payer**, mis a jour en direct a chaque article.
+
+### Le brancher
+
+Ces afficheurs se presentent a Windows comme un **port serie**, meme quand la prise est
+de l USB : Windows les montre alors sous un nom qui finit par `(COM3)`, `(COM4)`... Pour
+trouver le bon :
+
+```
+Parametrage --> Peripheriques --> Materiel detecte sur ce poste
+--> bouton Relever le materiel --> cherche "COM" dans la recherche
+```
+
+La colonne `Port` donne le nom a reporter. Si aucune ligne ne porte de `COM`, l afficheur
+n a pas de pilote installe, ou il est branche sur un port que Windows ne voit pas : c est
+a regler dans Windows avant LCOS.
+
+### Le regler
+
+```
+case Envoyer la somme sur l afficheur client --> Port --> Vitesse --> Protocole --> Largeur
+--> bouton Enregistrer --> bouton Afficher 123,45 pour voir
+```
+
+| Reglage | Ce qu il faut mettre |
+|---|---|
+| `Port` | Le `COM` trouve dans l inventaire |
+| `Vitesse` | `9600` dans la quasi totalite des cas. Des caracteres au hasard a l ecran : essaie les autres vitesses |
+| `Protocole` | Commence par `Texte brut`. L ecran ne s efface pas entre deux clients : `CD5220`. Afficheur chaine derriere l imprimante thermique : `ESC/POS` |
+| `Largeur` | Nombre de caracteres par ligne, `20` d ordinaire, `8` au minimum |
+
+Le bouton `Afficher 123,45 pour voir` envoie une somme d essai sans rien enregistrer :
+regarde l ecran arriere pendant que tu cliques. `Effacer l ecran` le rend a blanc.
+
+### Ce qu il affiche, et quand
+
+- Le total a payer, cale a droite, a chaque changement du panier.
+- Jamais la somme recue : c est le montant **a payer** que le client verifie.
+- Rien du tout si la case est decochee : LCOS n ouvre meme pas le port.
+
+*Si l afficheur ne repond plus en pleine journee :* la vente continue. LCOS signale une
+seule fois `Afficheur client muet`, passe le badge en defaut, et n essaie plus jusqu au
+prochain `Enregistrer`. Un ecran arriere en panne ne doit pas arreter une caisse.
+
+| Refus possible | Raison | Action |
+|---|---|---|
+| `port de l afficheur : COM1 a COM256 attendu` | Le port n est pas un port serie | Reporte le `COM` de l inventaire |
+| `vitesse refusee par Windows` | Le port n existe pas, ou un autre logiciel le tient | Verifie le port dans l inventaire, ferme l autre logiciel |
+| `COMn ne repond pas` | Appareil debranche ou eteint | Rebranche, puis `Afficher 123,45 pour voir` |
+
+## 7 quater. Materiel detecte sur ce poste
+
+**Emplacement** : `LCOS --> Parametrage --> Peripheriques --> Materiel detecte sur ce poste`
+
+```
+bouton Relever le materiel  (la lecture prend quelques secondes)
+```
+
+La meme liste que le gestionnaire de peripheriques de Windows, lisible sans quitter
+LCOS : **tout ce qui est branche** (USB, serie, Bluetooth) et **tout ce qui est integre**
+(carte mere, PCI, disques, ecran tactile).
+
+| Colonne | Ce qu elle dit |
+|---|---|
+| `Appareil` | Le nom donne par Windows |
+| `Famille` | Le genre : `Ports`, `Monitor`, `HIDClass`, `USB`, `Printer`... |
+| `Liaison` | Comment l appareil tient a la machine : `USB (branche)`, `PCI (interne)`, `HID`, `ACPI (carte mere)`... |
+| `Port` | Le `COM` quand l appareil est sur un port serie. C est la colonne a lire pour l afficheur client |
+| `Etat` | `en service`, `en defaut`, `inconnu` |
+| `Fabricant` | Tel que Windows le connait |
+
+Le champ de recherche et la liste des familles filtrent la liste : tape `com` pour les
+ports serie, `usb` pour ce qui est branche, le nom du fabricant de la douchette pour la
+retrouver.
+
+*A quoi ca sert, concretement :* trouver le port de l afficheur client, verifier que la
+douchette est bien vue par Windows, savoir si l imprimante integree est en defaut, et
+cela sans ouvrir une seule fenetre de Windows sur une caisse tactile.
+
+*Pourquoi la liste est parfois ecourtee :* un poste Windows declare plus de mille
+elements, pilotes systeme compris. LCOS en garde les 500 premiers par famille et le dit
+sous le tableau.
+
+---
+
 ## 8. Depannage
 
 | Symptome | Cause | Action |
@@ -844,6 +1179,21 @@ tient sur une seule ligne, la largeur du ticket est correcte. Sinon :
 | L import repond `N vente(s) en memoire` | Le parametrage seul effacerait des comptes rattaches a ces ventes | Edite un rapport Z, puis recommence l import |
 | Le code du gerant ne marche plus apres un import | Normal : c est desormais celui du fichier importe | Saisis le code de la caisse qui a produit le fichier |
 | Aucun fichier dans la liste d import | Mauvais dossier, ou aucun `.json` dedans | Corrige `Dossier`, puis `bouton Relire le dossier` |
+| `version d essai : 1 caissier(s) au maximum` | Plafond de la semaine d essai | Insere une licence (`Parametrage --> Licence`), le plafond tombe aussitot |
+| `version d essai : l export demande une licence` | L export et l import sont fermes pendant l essai | Idem ci-dessus |
+| La liste `Fichier du dossier` est vide a l import | Aucun fichier `.json` dans le dossier d export | Corrige le `Dossier` du panneau Exporter puis `Relire le dossier`, ou tape le chemin complet du fichier |
+| L afficheur client reste eteint | La case n est pas cochee, ou le port est faux | `Parametrage --> Peripheriques --> Afficheur client`, puis `Afficher 123,45 pour voir` |
+| L afficheur client montre des caracteres au hasard | Mauvaise vitesse | Essaie une autre vitesse, 9600 d abord |
+| `Materiel detecte` repond `lecture impossible` | Le service materiel de Windows etait occupe | Reappuie sur `Relever le materiel` : LCOS fait deja un second essai tout seul |
+| En mode scan, `Entree` n encaisse pas tout de suite | C est voulu depuis la 1.8.0 : la premiere `Entree` pose le total dans la somme recue | Touche `Entree` une seconde fois |
+| Le fichier .csv affiche les accents en caracteres abimes | Le tableur a ouvert le fichier dans le mauvais jeu de caracteres | Ouvre-le par `Donnees --> A partir d un fichier texte`, jeu de caracteres `UTF-8`, separateur `point-virgule` |
+| Le fichier .csv met tout dans une seule colonne | Le tableur attend la virgule comme separateur | Meme chemin que ci-dessus, separateur `point-virgule` |
+| `Echap` ne vide plus la vente | C est voulu depuis la 1.7.0 : elle defait un geste a la fois | Pour jeter la vente entiere : bouton `Annuler la vente` |
+| Aucune croix sur les lignes des ventes, `Suppr` ne fait rien | L option d annulation est fermee | `LCOS --> Parametrage --> Commerce et ticket --> Annulation des ventes` |
+| `annulation des ventes desactivee` | Meme cause, vue du noyau | Idem ci-dessus |
+| `code du caissier de la vente ou du gerant attendu` | Code d un autre caissier, ou code faux | Le code du caissier qui a fait **cette** vente, ou celui du gerant |
+| Un numero de ticket manque dans la suite | Cette vente a ete annulee | `LCOS --> Parametrage --> Rapports --> Ventes annulees` |
+| La touche `*` ne multiplie pas | Elle n agit qu en mode manuel, sur le champ du prix | `bouton Mode manuel`, tape un prix, puis `*` |
 | `Caisse fermee : licence requise` | Les sept jours d essai sont passes | Colle une licence dans le champ, la caisse rouvre aussitot. Les donnees sont intactes |
 | La licence est refusee | Cle incomplete ou recopiee a la main | Recolle la cle entiere, de `LCOS1.` jusqu au dernier caractere |
 | L editeur demande l empreinte du poste | Elle identifie cette caisse | `LCOS --> Parametrage --> Licence`, ligne `Empreinte de ce poste` |

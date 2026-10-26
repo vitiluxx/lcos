@@ -44,7 +44,7 @@ fn produit_vendable(connexion: &Connection, code: Option<&str>, prix: i64) -> i6
 fn applique_toutes_les_migrations_une_seule_fois() {
     let connexion = base();
 
-    assert_eq!(migrations::nombre_appliquees(&connexion).unwrap(), 5);
+    assert_eq!(migrations::nombre_appliquees(&connexion).unwrap(), 6);
     assert_eq!(migrations::appliquer(&connexion).unwrap(), 0);
 }
 
@@ -165,6 +165,8 @@ fn enregistre_une_vente_et_tient_les_totaux() {
 
     assert_eq!(journal.len(), 1);
     assert_eq!(journal[0].caissier, "Ali");
+    assert_eq!(journal[0].nombre_articles, 2);
+    assert_eq!(journal[0].articles, "Coca 33cl x2");
 
     let detail = ventes::lignes_de(&connexion, identifiant).unwrap();
 
@@ -181,6 +183,179 @@ fn enregistre_une_vente_et_tient_les_totaux() {
 
     assert_eq!(session_lue.nombre_ventes, 1);
     assert_eq!(session_lue.total_centimes, 300);
+}
+
+#[test]
+fn l_annulation_rend_le_stock_laisse_une_trace_et_ne_rend_pas_le_numero() {
+    let connexion = base();
+    let caissier = comptes::creer(&connexion, "Ali", ROLE_CAISSIER, &empreinte_factice()).unwrap();
+    let produit = produit_vendable(&connexion, Some("3017620422003"), 150);
+    let session = sessions::ouvrir(&connexion, caissier, 0).unwrap();
+    let numero = compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap();
+
+    let identifiant = ventes::enregistrer(
+        &connexion,
+        &ventes::VenteAEnregistrer {
+            numero_ticket: numero,
+            session,
+            caissier,
+            total_centimes: 300,
+            recu_centimes: 300,
+            rendu_centimes: 0,
+            nombre_articles: 2,
+        },
+        &[ventes::LigneAEnregistrer {
+            produit: Some(produit),
+            libelle: "Coca 33cl".to_string(),
+            code_barres: None,
+            rayon_libelle: "Boissons".to_string(),
+            prix_centimes: 150,
+            quantite: 2,
+            total_centimes: 300,
+        }],
+    )
+    .unwrap();
+
+    catalogue::retirer_du_stock(&connexion, produit, 2).unwrap();
+    compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 300).unwrap();
+    compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_ARTICLES, 2).unwrap();
+    compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_VENTES, 1).unwrap();
+
+    let trace = ventes::tracer_annulation(&connexion, identifiant, "Patron").unwrap();
+
+    assert_eq!(trace.numero_ticket, 1);
+    assert_eq!(trace.caissier, "Ali");
+    assert_eq!(trace.annulee_par, "Patron");
+    assert_eq!(trace.total_centimes, 300);
+
+    for restitution in ventes::restitutions(&connexion, identifiant).unwrap() {
+        catalogue::remettre_au_stock(&connexion, restitution.produit, restitution.quantite)
+            .unwrap();
+    }
+
+    ventes::supprimer(&connexion, identifiant).unwrap();
+    compteurs::retirer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 300).unwrap();
+    compteurs::retirer(&connexion, compteurs::GRAND_TOTAL_ARTICLES, 2).unwrap();
+    compteurs::retirer(&connexion, compteurs::GRAND_TOTAL_VENTES, 1).unwrap();
+
+    // Le stock est rendu, la vente a quitte le journal, la session retombe a
+    // zero et les grands totaux ne comptent plus cette vente.
+    assert_eq!(catalogue::exiger_produit(&connexion, produit).unwrap().stock, 10);
+    assert!(ventes::journal(&connexion, None).unwrap().is_empty());
+    assert!(ventes::lignes_de(&connexion, identifiant).unwrap().is_empty());
+    assert_eq!(ventes::agregats(&connexion).unwrap().nombre_ventes, 0);
+    assert_eq!(sessions::exiger_ouverte(&connexion).unwrap().total_centimes, 0);
+    assert_eq!(
+        compteurs::lire(&connexion, compteurs::GRAND_TOTAL_CENTIMES).unwrap(),
+        0
+    );
+
+    // Le numero de ticket reste consomme : le suivant est le 2, pas le 1.
+    assert_eq!(
+        compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap(),
+        2
+    );
+
+    let annulations = ventes::annulations(&connexion).unwrap();
+
+    assert_eq!(annulations.len(), 1);
+    assert_eq!(annulations[0].numero_ticket, 1);
+
+    // La remise a zero emporte la trace avec les ventes de la periode.
+    ventes::purger(&connexion).unwrap();
+
+    assert!(ventes::annulations(&connexion).unwrap().is_empty());
+}
+
+/// Le journal du gerant doit nommer ce qui a ete vendu, et l export doit
+/// porter une ligne par article, code-barres et rayon compris.
+#[test]
+fn le_journal_nomme_les_articles_et_l_export_detaille_chaque_ligne() {
+    let connexion = base();
+    let caissier = comptes::creer(&connexion, "Ali", ROLE_CAISSIER, &empreinte_factice()).unwrap();
+    let produit = produit_vendable(&connexion, Some("3017620422003"), 150);
+    let session = sessions::ouvrir(&connexion, caissier, 0).unwrap();
+    let numero = compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap();
+
+    let lignes = vec![
+        ventes::LigneAEnregistrer {
+            produit: Some(produit),
+            libelle: "Coca 33cl".to_string(),
+            code_barres: Some("3017620422003".to_string()),
+            rayon_libelle: "Boissons".to_string(),
+            prix_centimes: 150,
+            quantite: 3,
+            total_centimes: 450,
+        },
+        ventes::LigneAEnregistrer {
+            produit: None,
+            libelle: "Pain".to_string(),
+            code_barres: None,
+            rayon_libelle: "Divers".to_string(),
+            prix_centimes: 100,
+            quantite: 1,
+            total_centimes: 100,
+        },
+    ];
+
+    ventes::enregistrer(
+        &connexion,
+        &ventes::VenteAEnregistrer {
+            numero_ticket: numero,
+            session,
+            caissier,
+            total_centimes: 550,
+            recu_centimes: 600,
+            rendu_centimes: 50,
+            nombre_articles: 4,
+        },
+        &lignes,
+    )
+    .unwrap();
+
+    let journal = ventes::journal(&connexion, None).unwrap();
+
+    // La quantite n apparait que la ou elle depasse un : "Pain x1" serait du
+    // bruit sur un ticket de vingt lignes.
+    assert_eq!(journal[0].articles, "Coca 33cl x3, Pain");
+    assert_eq!(journal[0].nombre_articles, 4);
+
+    let detail = ventes::lignes_a_exporter(&connexion).unwrap();
+
+    assert_eq!(detail.len(), 2);
+    assert_eq!(detail[0].libelle, "Coca 33cl");
+    assert_eq!(detail[0].code_barres, "3017620422003");
+    assert_eq!(detail[0].rayon_libelle, "Boissons");
+    assert_eq!(detail[0].quantite, 3);
+    assert_eq!(detail[0].prix_centimes, 150);
+    assert_eq!(detail[0].total_centimes, 450);
+    assert_eq!(detail[0].total_vente_centimes, 550);
+    assert_eq!(detail[0].recu_centimes, 600);
+    assert_eq!(detail[0].rendu_centimes, 50);
+
+    // Un article libre n a pas de fiche : la colonne du code-barres reste vide
+    // plutot que de laisser une case nulle dans le tableur.
+    assert_eq!(detail[1].libelle, "Pain");
+    assert_eq!(detail[1].code_barres, "");
+    assert_eq!(detail[1].quantite, 1);
+
+    // La remise a zero emporte le detail : c est pour cela que l export le
+    // precede.
+    ventes::purger(&connexion).unwrap();
+
+    assert!(ventes::lignes_a_exporter(&connexion).unwrap().is_empty());
+}
+
+#[test]
+fn le_compteur_retire_ne_passe_jamais_sous_zero() {
+    let connexion = base();
+
+    compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 100).unwrap();
+
+    assert_eq!(
+        compteurs::retirer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 500).unwrap(),
+        0
+    );
 }
 
 #[test]

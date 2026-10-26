@@ -7,6 +7,8 @@ use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
 use crate::securite::RegistreJetons;
 
+use super::licence;
+
 const ORDRE_MAXIMAL: i64 = 999;
 const STOCK_MAXIMAL: i64 = 1_000_000;
 
@@ -46,6 +48,10 @@ pub fn creer_rayon(
     let ordre_valide = borner_ordre(ordre.unwrap_or(0))?;
 
     depot.executer(|connexion| {
+        let presents = catalogue::lister_rayons(connexion, true)?.len() as i64;
+
+        licence::exiger_quota_essai(connexion, "rayon(s)", presents, licence::ESSAI_RAYONS)?;
+
         let identifiant = catalogue::creer_rayon(connexion, &libelle_valide, ordre_valide)?;
 
         catalogue::exiger_rayon(connexion, identifiant)
@@ -129,6 +135,10 @@ pub fn creer_produit(
 
     depot.executer(|connexion| {
         catalogue::exiger_rayon(connexion, rayon)?;
+
+        let presents = catalogue::compter_produits(connexion)?;
+
+        licence::exiger_quota_essai(connexion, "produits", presents, licence::ESSAI_PRODUITS)?;
 
         let identifiant = catalogue::creer_produit(
             connexion,

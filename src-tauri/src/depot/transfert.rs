@@ -270,6 +270,7 @@ pub fn ecrire_parametrage(transaction: &Transaction, contenu: &Parametrage) -> R
 pub fn effacer_historique(transaction: &Transaction) -> Resultat<()> {
     transaction.execute("DELETE FROM ligne_vente", [])?;
     transaction.execute("DELETE FROM vente", [])?;
+    transaction.execute("DELETE FROM vente_annulee", [])?;
     transaction.execute("DELETE FROM session_caisse", [])?;
     transaction.execute("DELETE FROM rapport_z", [])?;
 

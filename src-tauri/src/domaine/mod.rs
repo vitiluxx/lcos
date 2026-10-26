@@ -1,3 +1,4 @@
+pub mod afficheur;
 pub mod code_barres;
 pub mod escpos;
 pub mod horodatage;

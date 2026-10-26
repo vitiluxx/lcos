@@ -241,6 +241,12 @@ pub fn lister_produits(connexion: &Connection, filtre: &Filtre) -> Resultat<Vec<
     Ok(produits)
 }
 
+pub fn compter_produits(connexion: &Connection) -> Resultat<i64> {
+    let total = connexion.query_row("SELECT COUNT(*) FROM produit", [], |ligne| ligne.get(0))?;
+
+    Ok(total)
+}
+
 pub fn lire_produit_par_identifiant(
     connexion: &Connection,
     identifiant: i64,
@@ -358,6 +364,18 @@ pub fn supprimer_produit(connexion: &Connection, identifiant: i64) -> Resultat<(
 
 /// Decremente le stock des produits suivis. Un stock negatif est accepte :
 /// la caisse ne doit jamais bloquer une vente, l inventaire se corrige apres.
+/// Retour au stock apres l annulation d une vente. Seuls les produits suivis
+/// sont touches : un produit vendu sans stock reste sans stock.
+pub fn remettre_au_stock(connexion: &Connection, produit: i64, quantite: i64) -> Resultat<()> {
+    connexion.execute(
+        "UPDATE produit SET stock = stock + ?2, modifie_le = datetime('now', 'localtime')
+          WHERE identifiant = ?1 AND suivi_stock = 1",
+        (produit, quantite),
+    )?;
+
+    Ok(())
+}
+
 pub fn retirer_du_stock(connexion: &Connection, produit: i64, quantite: i64) -> Resultat<()> {
     connexion.execute(
         "UPDATE produit SET stock = stock - ?2, modifie_le = datetime('now', 'localtime')

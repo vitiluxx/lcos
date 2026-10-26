@@ -1,9 +1,16 @@
 /*
  * Vue d encaissement. Deux modes de saisie :
- *   - scan    : la douchette remplit le panier, le pave saisit la somme recue.
- *   - manuel  : le pave saisit le prix d un article, la touche + l ajoute a la
- *               sommation, la touche Entree arrete la sommation et donne la
- *               main au champ de la somme recue.
+ *   - scan    : la douchette remplit le panier, la touche * multiplie la
+ *               derniere ligne lue, la touche Entree pose le total dans la
+ *               somme recue, la suivante encaisse. Le pave reste libre de
+ *               saisir une somme plus grande.
+ *   - manuel  : le pave saisit le prix d un article, la touche * le multiplie,
+ *               la touche + l ajoute a la sommation, la touche Entree arrete
+ *               la sommation et donne la main au champ de la somme recue, deja
+ *               rempli avec le total.
+ * La touche Echap ne jette plus la vente : elle defait le dernier geste, un a
+ * un, du plus recent au plus ancien. Annuler toute la vente en cours reste au
+ * bouton Annuler, et annuler une vente deja encaissee se passe dans Session.
  * Le panier ne porte que des identifiants, des quantites et, pour les articles
  * libres, un prix : c est le noyau Rust qui refait le chiffrage.
  */
@@ -13,6 +20,9 @@
   const CADENCE_MACHINE_MS = 40;
   const DELAI_STABILITE_MS = 300;
   const CHIFFRES_ENTIERS_MAXIMAUX = 8;
+
+  // Quantite maximale du noyau : 9999, donc quatre chiffres au multiplicateur.
+  const FACTEUR_CHIFFRES_MAXIMAUX = 4;
 
   const panier = [];
 
@@ -24,6 +34,16 @@
   let montantSaisi = "";
   let montantStable = "";
   let prixSaisi = "";
+  // Multiplicateur en cours de frappe : null hors multiplication, chaine vide
+  // juste apres la touche *, donc "en attente du nombre".
+  let facteurSaisi = null;
+  // La somme recue a ete posee par la caisse, pas par le caissier : la
+  // premiere frappe la remplace au lieu de s y coller.
+  let montantPrerempli = false;
+  // Mode scan : quantite en cours de frappe pour une ligne deja au panier.
+  // null hors multiplication, chaine vide juste apres la touche *.
+  let quantiteSaisie = null;
+  let rangMultiplie = -1;
   let minuterieStable = null;
   let dernierInstantTouche = 0;
   let encaissementEnCours = false;
@@ -33,6 +53,101 @@
 
   function enSaisieDePrix() {
     return mode === "manuel" && phase === "saisie";
+  }
+
+  function enMultiplication() {
+    return facteurSaisi !== null;
+  }
+
+  // Mode scan : un code-barres est le meme pour chaque exemplaire du produit.
+  // Plutot que de scanner dix fois, le caissier scanne une fois puis multiplie
+  // la ligne. La quantite remplace celle de la ligne, elle ne s y ajoute pas.
+  function enMultiplicationScan() {
+    return quantiteSaisie !== null;
+  }
+
+  function ligneMultipliee() {
+    return panier[rangMultiplie] || null;
+  }
+
+  function ouvrirMultiplicationScan() {
+    if (!panier.length) {
+      global.notifier.alerte("Scanne d abord un article, puis touche * pour la quantite.");
+      return;
+    }
+
+    rangMultiplie = panier.length - 1;
+    quantiteSaisie = "";
+
+    afficherQuantite();
+    appliquerIndice();
+  }
+
+  function fermerMultiplicationScan() {
+    if (!enMultiplicationScan()) {
+      return;
+    }
+
+    quantiteSaisie = null;
+    rangMultiplie = -1;
+
+    afficherQuantite();
+    appliquerIndice();
+  }
+
+  function validerMultiplicationScan() {
+    const ligne = ligneMultipliee();
+
+    if (!ligne) {
+      fermerMultiplicationScan();
+      return;
+    }
+
+    const quantite = global.format.entier(quantiteSaisie, 0);
+
+    if (quantite <= 0) {
+      global.notifier.alerte("Tape la quantite, puis Entree.");
+      return;
+    }
+
+    const libelle = ligne.libelle;
+
+    ligne.quantite = quantite;
+    fermerMultiplicationScan();
+    afficherPanier();
+    global.notifier.neutre(libelle + " x " + quantite + ".");
+  }
+
+  function afficherQuantite() {
+    const bloc = element("caisse_bloc_quantite");
+    const ligne = ligneMultipliee();
+
+    bloc.hidden = !enMultiplicationScan();
+
+    if (!enMultiplicationScan() || !ligne) {
+      poser(element("caisse_quantite"), "");
+      element("caisse_quantite_aide").textContent = "";
+      return;
+    }
+
+    const quantite = global.format.entier(quantiteSaisie, 0);
+
+    poser(element("caisse_quantite"), quantiteSaisie);
+    element("caisse_quantite_aide").textContent = quantiteSaisie === ""
+      ? ligne.libelle + " : tape la quantite, puis Entree."
+      : ligne.libelle +
+        " : " +
+        global.format.monnaie(ligne.prix_centimes) +
+        " x " +
+        String(quantite) +
+        " = " +
+        global.format.monnaie(ligne.prix_centimes * quantite);
+  }
+
+  function facteur() {
+    const valeur = global.format.entier(facteurSaisi, 1);
+
+    return valeur > 0 ? valeur : 1;
   }
 
   function totalCentimes() {
@@ -86,6 +201,51 @@
     return resultat;
   }
 
+  // Un multiplicateur est un nombre entier : ni virgule, ni espace, ni zero de
+  // tete, et quatre chiffres au plus puisque le noyau refuse au dela de 9999.
+  function normaliserFacteur(brut) {
+    let resultat = "";
+
+    for (const caractere of String(brut || "")) {
+      if (caractere < "0" || caractere > "9") {
+        continue;
+      }
+
+      if (resultat === "" && caractere === "0") {
+        continue;
+      }
+
+      if (resultat.length >= FACTEUR_CHIFFRES_MAXIMAUX) {
+        continue;
+      }
+
+      resultat += caractere;
+    }
+
+    return resultat;
+  }
+
+  // Touche * : le prix deja tape devient un prix unitaire, la frappe suivante
+  // est la quantite. Plus rapide que de retaper le meme prix plusieurs fois.
+  function ouvrirMultiplication() {
+    if (!enSaisieDePrix()) {
+      return;
+    }
+
+    if (enCentimes(prixSaisi) <= 0) {
+      global.notifier.alerte("Tape d abord le prix, puis * pour la quantite.");
+      return;
+    }
+
+    if (enMultiplication()) {
+      return;
+    }
+
+    facteurSaisi = "";
+    afficherPrix();
+    afficherTotaux();
+  }
+
   function poser(champ, valeur) {
     if (champ.value !== valeur) {
       champ.value = valeur;
@@ -97,7 +257,33 @@
   }
 
   function afficherPrix() {
-    poser(element("caisse_prix"), prixSaisi);
+    poser(element("caisse_prix"), enMultiplication()
+      ? prixSaisi + " x " + facteurSaisi
+      : prixSaisi);
+
+    afficherAidePrix();
+  }
+
+  // Le produit s affiche pendant la frappe : le caissier voit le calcul se
+  // faire, il n a pas a le refaire de tete.
+  function afficherAidePrix() {
+    const aide = element("caisse_prix_aide");
+
+    if (!enMultiplication()) {
+      aide.textContent =
+        "Touche * pour multiplier, + pour ajouter l article, Entree pour totaliser.";
+      return;
+    }
+
+    const unite = enCentimes(prixSaisi);
+
+    aide.textContent =
+      global.format.monnaie(unite) +
+      " x " +
+      String(facteur()) +
+      " = " +
+      global.format.monnaie(unite * facteur()) +
+      (facteurSaisi === "" ? " (tape la quantite)" : "");
   }
 
   function etatPaiement(total, recu) {
@@ -149,11 +335,16 @@
 
     element("caisse_encaisser").disabled =
       encaissementEnCours || panier.length === 0 || recu < total;
+
+    // L ecran du client suit le total, jamais la somme recue : c est le
+    // montant a payer que le client verifie.
+    global.vueAfficheur.poserSomme(total);
   }
 
   function afficherPanier() {
     const corps = element("caisse_panier");
 
+    rafraichirMontantPrerempli();
     global.format.vider(corps);
 
     if (!panier.length) {
@@ -210,6 +401,10 @@
   }
 
   function ajouterProduit(produit, quantite) {
+    // Un nouvel article lu ferme la multiplication en cours : elle visait la
+    // ligne precedente.
+    fermerMultiplicationScan();
+
     const pas = quantite || 1;
     const existante = panier.find(function (ligne) {
       return ligne.produit === produit.identifiant;
@@ -242,10 +437,11 @@
       produit: null,
       libelle: "Article " + (panier.length + 1),
       prix_centimes: centimes,
-      quantite: 1
+      quantite: facteur()
     });
 
     prixSaisi = "";
+    facteurSaisi = null;
     afficherPrix();
     afficherPanier();
 
@@ -253,6 +449,8 @@
   }
 
   function changerQuantite(rang, pas) {
+    fermerMultiplicationScan();
+
     const ligne = panier[rang];
 
     if (!ligne) {
@@ -269,6 +467,7 @@
   }
 
   function retirerLigne(rang) {
+    fermerMultiplicationScan();
     panier.splice(rang, 1);
     afficherPanier();
   }
@@ -278,6 +477,10 @@
     montantSaisi = "";
     montantStable = "";
     prixSaisi = "";
+    facteurSaisi = null;
+    montantPrerempli = false;
+    quantiteSaisie = null;
+    rangMultiplie = -1;
 
     if (mode === "manuel") {
       phase = "saisie";
@@ -285,6 +488,7 @@
 
     afficherMontant();
     afficherPrix();
+    afficherQuantite();
     appliquerIndice();
     afficherPanier();
   }
@@ -370,11 +574,31 @@
   }
 
   function ajouterAuTampon(caracteres) {
+    if (enMultiplicationScan()) {
+      if (caracteres === ",") {
+        return;
+      }
+
+      quantiteSaisie = normaliserFacteur(quantiteSaisie + caracteres);
+      afficherQuantite();
+      return;
+    }
+
     if (enSaisieDePrix()) {
-      prixSaisi = normaliser(prixSaisi + caracteres);
+      if (enMultiplication()) {
+        facteurSaisi = normaliserFacteur(facteurSaisi + caracteres);
+      } else {
+        prixSaisi = normaliser(prixSaisi + caracteres);
+      }
+
       afficherPrix();
       afficherTotaux();
       return;
+    }
+
+    if (montantPrerempli) {
+      montantSaisi = "";
+      montantPrerempli = false;
     }
 
     montantSaisi = normaliser(montantSaisi + caracteres);
@@ -384,13 +608,25 @@
   }
 
   function retirerDuTampon() {
+    if (enMultiplicationScan()) {
+      quantiteSaisie = quantiteSaisie.slice(0, -1);
+      afficherQuantite();
+      return;
+    }
+
     if (enSaisieDePrix()) {
-      prixSaisi = prixSaisi.slice(0, -1);
+      if (enMultiplication()) {
+        facteurSaisi = facteurSaisi === "" ? null : facteurSaisi.slice(0, -1);
+      } else {
+        prixSaisi = prixSaisi.slice(0, -1);
+      }
+
       afficherPrix();
       afficherTotaux();
       return;
     }
 
+    montantPrerempli = false;
     montantSaisi = montantSaisi.slice(0, -1);
     afficherMontant();
     afficherTotaux();
@@ -398,24 +634,155 @@
   }
 
   function effacerTampon() {
+    if (enMultiplicationScan()) {
+      quantiteSaisie = "";
+      afficherQuantite();
+      return;
+    }
+
     if (enSaisieDePrix()) {
+      prixSaisi = "";
+      facteurSaisi = null;
+      afficherPrix();
+      afficherTotaux();
+      return;
+    }
+
+    montantPrerempli = false;
+    montantSaisi = "";
+    montantStable = "";
+    afficherMontant();
+    appliquerIndice();
+    afficherTotaux();
+  }
+
+  function valeurExacte() {
+    return global.format.monnaie(totalCentimes()).replace(/ /g, "");
+  }
+
+  function montantExact() {
+    montantSaisi = valeurExacte();
+    montantStable = montantSaisi;
+    afficherMontant();
+    afficherTotaux();
+  }
+
+  // La caisse pose le total dans la somme recue : le client qui paie juste ne
+  // demande plus qu une frappe sur Entree, et la premiere touche chiffree
+  // remplace ce total au lieu de s y coller.
+  //
+  // Le curseur n entre dans le champ qu en mode manuel, ou la sommation est
+  // finie. En mode scan, le panier peut encore grossir : un champ de saisie
+  // qui a le curseur recevrait les caracteres de la douchette au lieu de
+  // laisser le detecteur de cadence les lire.
+  function poserTotalRecu(avecCurseur) {
+    montantExact();
+    montantPrerempli = true;
+    appliquerIndice();
+
+    if (!avecCurseur) {
+      return;
+    }
+
+    const champ = element("caisse_montant");
+
+    champ.focus();
+    champ.select();
+  }
+
+  // Mode scan : la premiere Entree pose le total, la seconde encaisse. Une
+  // somme deja tapee n est jamais ecrasee, la touche encaisse directement.
+  function preremplirMontant() {
+    if (mode !== "scan" || !panier.length || montantSaisi !== "") {
+      return false;
+    }
+
+    poserTotalRecu(false);
+
+    return true;
+  }
+
+  // Le total pose par la caisse suit le panier : en mode scan, un article lu
+  // apres coup changerait le total sans changer la somme recue.
+  function rafraichirMontantPrerempli() {
+    if (!montantPrerempli) {
+      return;
+    }
+
+    if (!panier.length) {
+      montantSaisi = "";
+      montantStable = "";
+      montantPrerempli = false;
+      afficherMontant();
+      return;
+    }
+
+    montantSaisi = valeurExacte();
+    montantStable = montantSaisi;
+    afficherMontant();
+  }
+
+  // Retour a la saisie des prix apres un passage sur la somme recue : la
+  // sommation reprend ou elle s etait arretee, le panier est intact.
+  function revenirALaSaisie() {
+    phase = "saisie";
+    montantSaisi = "";
+    montantStable = "";
+    montantPrerempli = false;
+
+    element("caisse_bloc_prix").hidden = false;
+    element("caisse_ajouter_manuel").hidden = false;
+
+    afficherMontant();
+    afficherPrix();
+    appliquerIndice();
+    afficherTotaux();
+
+    element("caisse_prix").focus();
+  }
+
+  // Echap : un seul geste defait, le plus recent d abord. Jamais toute la
+  // vente d un coup, sinon une frappe de trop coute un panier entier.
+  function retourEnArriere() {
+    if (enMultiplicationScan()) {
+      fermerMultiplicationScan();
+      return;
+    }
+
+    if (mode === "manuel" && phase === "paiement") {
+      revenirALaSaisie();
+      global.notifier.neutre("Retour a la saisie des prix.");
+      return;
+    }
+
+    if (enMultiplication()) {
+      facteurSaisi = null;
+      afficherPrix();
+      afficherTotaux();
+      return;
+    }
+
+    if (prixSaisi) {
       prixSaisi = "";
       afficherPrix();
       afficherTotaux();
       return;
     }
 
-    montantSaisi = "";
-    montantStable = "";
-    afficherMontant();
-    afficherTotaux();
-  }
+    if (montantSaisi) {
+      effacerTampon();
+      return;
+    }
 
-  function montantExact() {
-    montantSaisi = global.format.monnaie(totalCentimes()).replace(/ /g, "");
-    montantStable = montantSaisi;
-    afficherMontant();
-    afficherTotaux();
+    if (panier.length) {
+      const derniere = panier[panier.length - 1];
+
+      retirerLigne(panier.length - 1);
+      global.notifier.neutre("Retire du panier : " + derniere.libelle + ".");
+      return;
+    }
+
+    global.notifier.neutre("Rien a defaire.");
   }
 
   // Fin de la sommation manuelle : le total est fige, le curseur passe sur la
@@ -433,34 +800,40 @@
     phase = "paiement";
     element("caisse_bloc_prix").hidden = true;
     element("caisse_ajouter_manuel").hidden = true;
-    appliquerIndice();
-    afficherTotaux();
 
-    const champ = element("caisse_montant");
-
-    champ.focus();
-    champ.select();
+    poserTotalRecu(true);
   }
 
   function appliquerIndice() {
     const indice = element("caisse_indice");
 
+    if (enMultiplicationScan()) {
+      indice.textContent = "Tape la quantite puis Entree. Echap annule.";
+      return;
+    }
+
     if (mode === "scan") {
-      indice.textContent = "Scanne les articles puis tape la somme recue (Entree).";
+      indice.textContent = montantPrerempli
+        ? "Somme recue deja posee : Entree encaisse, Echap l efface, * multiplie."
+        : "Scanne les articles, * multiplie la derniere ligne, Entree pose le total.";
       return;
     }
 
     indice.textContent = enSaisieDePrix()
-      ? "Tape un prix, touche + pour l ajouter, Entree pour totaliser."
-      : "Tape la somme recue du client, Entree pour encaisser.";
+      ? "Prix, * pour multiplier, + pour ajouter, Entree pour totaliser, Echap defait."
+      : "Somme recue deja posee : Entree encaisse, Echap revient aux prix.";
   }
 
   function appliquerMode(nouveau) {
     mode = nouveau === "manuel" ? "manuel" : "scan";
     phase = mode === "manuel" ? "saisie" : "paiement";
     prixSaisi = "";
+    facteurSaisi = null;
+    montantPrerempli = false;
     montantSaisi = "";
     montantStable = "";
+    quantiteSaisie = null;
+    rangMultiplie = -1;
 
     element("caisse_mode_scan").classList.toggle("bouton_mode--actif", mode === "scan");
     element("caisse_mode_manuel").classList.toggle("bouton_mode--actif", mode === "manuel");
@@ -468,6 +841,7 @@
     element("caisse_ajouter_manuel").hidden = mode !== "manuel";
 
     afficherPrix();
+    afficherQuantite();
     afficherMontant();
     appliquerIndice();
     afficherTotaux();
@@ -642,25 +1016,46 @@
     if (touche === "Enter") {
       evenement.preventDefault();
 
-      if (enSaisieDePrix()) {
+      if (enMultiplicationScan()) {
+        validerMultiplicationScan();
+      } else if (enSaisieDePrix()) {
         totaliser();
-      } else {
+      } else if (!preremplirMontant()) {
         encaisser();
       }
 
       return;
     }
 
-    if (touche === "+" && mode === "manuel") {
+    if (touche === "+") {
+      if (enMultiplicationScan()) {
+        evenement.preventDefault();
+        validerMultiplicationScan();
+        return;
+      }
+
+      if (mode === "manuel") {
+        evenement.preventDefault();
+        ajouterArticleLibre();
+        return;
+      }
+    }
+
+    if (touche === "*") {
       evenement.preventDefault();
-      ajouterArticleLibre();
+
+      if (mode === "manuel") {
+        ouvrirMultiplication();
+      } else if (!enMultiplicationScan()) {
+        ouvrirMultiplicationScan();
+      }
+
       return;
     }
 
     if (touche === "Escape") {
       evenement.preventDefault();
-      viderPanier();
-      global.notifier.neutre("Vente annulee.");
+      retourEnArriere();
       return;
     }
 
@@ -728,6 +1123,7 @@
 
     montantSaisi = normaliser(montantSaisi);
     prixSaisi = normaliser(prixSaisi);
+    facteurSaisi = facteurSaisi === null ? null : normaliserFacteur(facteurSaisi);
     afficherMontant();
     afficherPrix();
 
@@ -782,8 +1178,19 @@
     const champPrix = element("caisse_prix");
     const champMontant = element("caisse_montant");
 
+    // Frappe directe dans le champ : la forme "prix x quantite" est relue
+    // telle quelle, sinon le caissier perdrait sa multiplication au clavier.
     champPrix.addEventListener("input", function () {
-      prixSaisi = normaliser(champPrix.value);
+      const tranches = champPrix.value.split(/[x*]/);
+
+      prixSaisi = normaliser(tranches[0]);
+
+      if (tranches.length > 1) {
+        facteurSaisi = normaliserFacteur(tranches[1]);
+      } else if (enMultiplication()) {
+        facteurSaisi = null;
+      }
+
       afficherPrix();
       afficherTotaux();
     });
@@ -799,6 +1206,18 @@
         return;
       }
 
+      if (evenement.key === "*") {
+        evenement.preventDefault();
+        ouvrirMultiplication();
+        return;
+      }
+
+      if (evenement.key === "Escape") {
+        evenement.preventDefault();
+        retourEnArriere();
+        return;
+      }
+
       if (evenement.key === "Enter") {
         evenement.preventDefault();
         totaliser();
@@ -806,6 +1225,7 @@
     });
 
     champMontant.addEventListener("input", function () {
+      montantPrerempli = false;
       montantSaisi = normaliser(champMontant.value);
       montantStable = montantSaisi;
       afficherMontant();
@@ -817,9 +1237,18 @@
         return;
       }
 
+      if (evenement.key === "Escape") {
+        evenement.preventDefault();
+        retourEnArriere();
+        return;
+      }
+
       if (evenement.key === "Enter") {
         evenement.preventDefault();
-        encaisser();
+
+        if (!preremplirMontant()) {
+          encaisser();
+        }
       }
     });
   }
@@ -855,6 +1284,14 @@
           effacerTampon();
         } else if (valeur === "retour") {
           retirerDuTampon();
+        } else if (valeur === "multiplier") {
+          if (mode === "manuel") {
+            ouvrirMultiplication();
+          } else if (enMultiplicationScan()) {
+            validerMultiplicationScan();
+          } else {
+            ouvrirMultiplicationScan();
+          }
         } else if (valeur === "exact") {
           if (enSaisieDePrix()) {
             totaliser();

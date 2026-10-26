@@ -13,6 +13,7 @@ const CLE_DEVISE: &str = "symbole_devise";
 const CLE_TICKET_ACTIF: &str = "ticket_actif";
 const CLE_IMPRESSION_RECU: &str = "impression_recu";
 const CLE_DECIMALES: &str = "monnaie_decimales";
+const CLE_ANNULATION_VENTE: &str = "annulation_vente";
 const CLE_COLONNES: &str = "ticket_largeur_colonnes";
 const CLE_ENTETE: &str = "ticket_entete";
 const CLE_PIED: &str = "ticket_pied";
@@ -36,6 +37,10 @@ pub struct Reglages {
     pub impression_recu: bool,
     /// 2 pour l euro, 0 pour une devise sans subdivision comme le FCFA.
     pub decimales: i64,
+    /// Annulation d une vente deja encaissee depuis l ecran Session. Fermee
+    /// par defaut : c est le gerant qui ouvre la porte, et une annulation
+    /// laisse une trace nominative.
+    pub annulation_vente: bool,
     pub ticket_largeur_colonnes: i64,
     pub ticket_entete: String,
     pub ticket_pied: String,
@@ -49,6 +54,7 @@ pub fn charger(connexion: &Connection) -> Resultat<Reglages> {
         ticket_actif: parametres::lire_booleen(connexion, CLE_TICKET_ACTIF, true)?,
         impression_recu: parametres::lire_booleen(connexion, CLE_IMPRESSION_RECU, true)?,
         decimales: charger_decimales(connexion)?,
+        annulation_vente: parametres::lire_booleen(connexion, CLE_ANNULATION_VENTE, false)?,
         ticket_largeur_colonnes: parametres::lire_entier(
             connexion,
             CLE_COLONNES,
@@ -131,6 +137,23 @@ pub fn basculer_impression_recu(
 
     depot.executer(|connexion| {
         parametres::ecrire_booleen(connexion, CLE_IMPRESSION_RECU, actif)?;
+
+        charger(connexion)
+    })
+}
+
+/// Ouverture ou fermeture de l annulation des ventes deja encaissees.
+#[tauri::command]
+pub fn basculer_annulation_vente(
+    depot: State<Depot>,
+    jetons: State<RegistreJetons>,
+    jeton: String,
+    actif: bool,
+) -> Resultat<Reglages> {
+    jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    depot.executer(|connexion| {
+        parametres::ecrire_booleen(connexion, CLE_ANNULATION_VENTE, actif)?;
 
         charger(connexion)
     })
