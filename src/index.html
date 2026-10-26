@@ -1565,9 +1565,12 @@
               <h2 class="panneau__titre">Afficheur client</h2>
               <p class="panneau__intro">
                 Le petit ecran tourne vers le client, a l arriere de la caisse. Il affiche
-                la somme en temps reel pendant la vente. Branche sur un port serie, meme
-                quand la prise est de l USB : Windows le montre alors comme un
-                <code>COM</code>. Cherche-le dans le materiel detecte plus bas.
+                la somme en temps reel pendant la vente. Ce n est pas un second ecran
+                d ordinateur : il ne sait rendre que des caracteres, et Windows ne le voit
+                donc jamais comme un moniteur. Deux branchements possibles, selon la
+                caisse : son propre port serie (un <code>COM</code>, meme quand la prise
+                est de l USB), ou la prise de l imprimante thermique, derriere laquelle il
+                est chaine.
               </p>
             </div>
             <span class="badge badge--attente" id="badge_afficheur">eteint</span>
@@ -1581,7 +1584,19 @@
               </label>
             </div>
 
-            <div class="formulaire__ligne">
+            <div class="champ">
+              <label class="champ__etiquette" for="afficheur_voie">Branchement</label>
+              <select class="champ__liste" id="afficheur_voie">
+                <option value="serie">Son propre port serie (COM)</option>
+                <option value="imprimante">Derriere l imprimante du ticket</option>
+              </select>
+              <span class="champ__aide" id="afficheur_voie_aide">
+                Aucun COM dans le materiel detecte ? Prends la seconde ligne : l afficheur
+                est alors chaine sur la carte de l imprimante.
+              </span>
+            </div>
+
+            <div class="formulaire__ligne" id="afficheur_ligne_serie">
               <div class="champ">
                 <label class="champ__etiquette" for="afficheur_port">Port</label>
                 <select class="champ__liste" id="afficheur_port"></select>
@@ -1602,7 +1617,7 @@
             </div>
 
             <div class="formulaire__ligne">
-              <div class="champ">
+              <div class="champ" id="afficheur_champ_protocole">
                 <label class="champ__etiquette" for="afficheur_protocole">Protocole</label>
                 <select class="champ__liste" id="afficheur_protocole">
                   <option value="texte">Texte brut</option>

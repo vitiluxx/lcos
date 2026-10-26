@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.0
+# Guide d utilisation LCOS 1.9.1
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -14,7 +14,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.0`.
+barres**, en haut a droite, juste a cote de `version 1.9.1`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -57,7 +57,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.0_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.1_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -1071,34 +1071,48 @@ tient sur une seule ligne, la largeur du ticket est correcte. Sinon :
 C est le petit ecran tourne vers le client, a l arriere de la caisse. Il n affiche qu une
 somme : le **total a payer**, mis a jour en direct a chaque article.
 
-### Le brancher
+**Ce n est pas un second ecran d ordinateur.** Il ne sait rendre que des caracteres, il
+n a pas de carte graphique derriere lui, et Windows ne le montre donc **jamais** comme un
+moniteur. Chercher un deuxieme ecran dans les reglages d affichage de Windows ne donnera
+rien : ce n est pas la qu il se configure.
 
-Ces afficheurs se presentent a Windows comme un **port serie**, meme quand la prise est
-de l USB : Windows les montre alors sous un nom qui finit par `(COM3)`, `(COM4)`... Pour
-trouver le bon :
+### Savoir par ou il est branche
+
+Deux branchements, et un seul geste pour savoir lequel :
 
 ```
 Parametrage --> Peripheriques --> Materiel detecte sur ce poste
---> bouton Relever le materiel --> cherche "COM" dans la recherche
+--> bouton Relever le materiel --> tape "com" dans la recherche
 ```
 
-La colonne `Port` donne le nom a reporter. Si aucune ligne ne porte de `COM`, l afficheur
-n a pas de pilote installe, ou il est branche sur un port que Windows ne voit pas : c est
-a regler dans Windows avant LCOS.
+| Ce que tu vois | Branchement | Reglage `Branchement` |
+|---|---|---|
+| Une ligne avec un `COM` dans la colonne `Port` | L afficheur a son propre port serie, meme si la prise est de l USB | `Son propre port serie (COM)` |
+| Aucune ligne avec un `COM` | L afficheur est chaine sur la carte de l imprimante thermique : il n a pas de port a lui | `Derriere l imprimante du ticket` |
+
+C est le cas des caisses tout-en-un : la carte de l imprimante porte une prise pour
+l afficheur, et rien n apparait dans les ports de Windows. LCOS envoie alors la somme au
+spouleur de l imprimante du ticket, precedee de la commande qui donne la main a
+l afficheur et suivie de celle qui la rend au rouleau.
 
 ### Le regler
 
 ```
-case Envoyer la somme sur l afficheur client --> Port --> Vitesse --> Protocole --> Largeur
---> bouton Enregistrer --> bouton Afficher 123,45 pour voir
+case Envoyer la somme sur l afficheur client --> Branchement --> (Port, Vitesse)
+--> Largeur --> bouton Enregistrer --> bouton Afficher 123,45 pour voir
 ```
 
 | Reglage | Ce qu il faut mettre |
 |---|---|
-| `Port` | Le `COM` trouve dans l inventaire |
+| `Branchement` | Voir le tableau ci-dessus |
+| `Port` | Le `COM` trouve dans l inventaire. Absent quand l afficheur passe par l imprimante |
 | `Vitesse` | `9600` dans la quasi totalite des cas. Des caracteres au hasard a l ecran : essaie les autres vitesses |
-| `Protocole` | Commence par `Texte brut`. L ecran ne s efface pas entre deux clients : `CD5220`. Afficheur chaine derriere l imprimante thermique : `ESC/POS` |
+| `Protocole` | Voie serie seulement. Commence par `Texte brut` ; si l ecran ne s efface pas entre deux clients, `CD5220` ; si l afficheur est un modele ESC/POS a port propre, `ESC/POS` |
 | `Largeur` | Nombre de caracteres par ligne, `20` d ordinaire, `8` au minimum |
+
+**Voie imprimante : choisis l imprimante du ticket d abord** (panneau juste au-dessus,
+chapitre 7 bis). Sans imprimante retenue, LCOS refuse d allumer l afficheur, parce qu il
+ne saurait pas par ou envoyer les octets.
 
 Le bouton `Afficher 123,45 pour voir` envoie une somme d essai sans rien enregistrer :
 regarde l ecran arriere pendant que tu cliques. `Effacer l ecran` le rend a blanc.
@@ -1117,6 +1131,7 @@ prochain `Enregistrer`. Un ecran arriere en panne ne doit pas arreter une caisse
 |---|---|---|
 | `port de l afficheur : COM1 a COM256 attendu` | Le port n est pas un port serie | Reporte le `COM` de l inventaire |
 | `vitesse refusee par Windows` | Le port n existe pas, ou un autre logiciel le tient | Verifie le port dans l inventaire, ferme l autre logiciel |
+| `choisis d abord l imprimante du ticket` | Voie imprimante, mais aucune imprimante retenue | `Parametrage --> Peripheriques --> Imprimante du ticket --> Detecter` |
 | `COMn ne repond pas` | Appareil debranche ou eteint | Rebranche, puis `Afficher 123,45 pour voir` |
 
 ## 7 quater. Materiel detecte sur ce poste
@@ -1182,7 +1197,9 @@ sous le tableau.
 | `version d essai : 1 caissier(s) au maximum` | Plafond de la semaine d essai | Insere une licence (`Parametrage --> Licence`), le plafond tombe aussitot |
 | `version d essai : l export demande une licence` | L export et l import sont fermes pendant l essai | Idem ci-dessus |
 | La liste `Fichier du dossier` est vide a l import | Aucun fichier `.json` dans le dossier d export | Corrige le `Dossier` du panneau Exporter puis `Relire le dossier`, ou tape le chemin complet du fichier |
-| L afficheur client reste eteint | La case n est pas cochee, ou le port est faux | `Parametrage --> Peripheriques --> Afficheur client`, puis `Afficher 123,45 pour voir` |
+| L afficheur client reste eteint | La case n est pas cochee, ou le branchement est faux | `Parametrage --> Peripheriques --> Afficheur client`, puis `Afficher 123,45 pour voir` |
+| Windows ne montre aucun second ecran | Normal : l afficheur client n est pas un moniteur | Il se regle dans `Peripheriques --> Afficheur client`, pas dans l affichage de Windows |
+| Aucun `COM` dans le materiel detecte | L afficheur est chaine derriere l imprimante | Branchement `Derriere l imprimante du ticket` |
 | L afficheur client montre des caracteres au hasard | Mauvaise vitesse | Essaie une autre vitesse, 9600 d abord |
 | `Materiel detecte` repond `lecture impossible` | Le service materiel de Windows etait occupe | Reappuie sur `Relever le materiel` : LCOS fait deja un second essai tout seul |
 | En mode scan, `Entree` n encaisse pas tout de suite | C est voulu depuis la 1.8.0 : la premiere `Entree` pose le total dans la somme recue | Touche `Entree` une seconde fois |

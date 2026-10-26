@@ -165,6 +165,18 @@ pub fn tester_impression(
     imprimer_ticket(depot, page_de_test())
 }
 
+/// Octets bruts vers une imprimante du spouleur, partage avec l afficheur
+/// client : sur une caisse tout-en-un, l afficheur est chaine derriere
+/// l imprimante et n a pas de port a lui.
+pub(crate) fn envoyer_octets(imprimante: &str, octets: &[u8]) -> Resultat<()> {
+    brut::envoyer(imprimante, octets)
+}
+
+/// Imprimante retenue pour le ticket. Vide si le gerant n en a choisi aucune.
+pub(crate) fn imprimante_retenue(connexion: &rusqlite::Connection) -> Resultat<String> {
+    parametres::lire_ou(connexion, CLE_NOM, "")
+}
+
 fn lire_options(connexion: &rusqlite::Connection) -> Resultat<escpos::Options> {
     Ok(escpos::Options {
         gras: parametres::lire_booleen(connexion, CLE_GRAS, true)?,

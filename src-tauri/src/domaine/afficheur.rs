@@ -16,6 +16,22 @@
  */
 use crate::erreur::{ErreurApplication, Resultat};
 
+/*
+ * Deux voies pour atteindre l afficheur :
+ *   - serie      : l afficheur a son propre port, meme quand la prise est de
+ *                  l USB. Windows le montre alors comme un `COM` ;
+ *   - imprimante : l afficheur est chaine derriere l imprimante thermique et
+ *                  n a aucun port a lui. Les octets partent au spouleur comme
+ *                  un ticket, precedes de la commande qui donne la main a
+ *                  l afficheur et suivis de celle qui la rend au rouleau.
+ *
+ * La seconde voie est celle des caisses tout-en-un : la carte de l imprimante
+ * porte une prise pour l afficheur client, et rien n apparait dans les ports
+ * de Windows.
+ */
+pub const VOIE_SERIE: &str = "serie";
+pub const VOIE_IMPRIMANTE: &str = "imprimante";
+
 pub const PROTOCOLE_TEXTE: &str = "texte";
 pub const PROTOCOLE_CD5220: &str = "cd5220";
 pub const PROTOCOLE_ESCPOS: &str = "escpos";
@@ -36,6 +52,16 @@ const ECHAPPEMENT: u8 = 0x1B;
 
 pub fn borner_colonnes(colonnes: i64) -> i64 {
     colonnes.clamp(COLONNES_MINIMALES, COLONNES_MAXIMALES)
+}
+
+pub fn valider_voie(voie: &str) -> Resultat<&'static str> {
+    match voie.trim() {
+        VOIE_SERIE => Ok(VOIE_SERIE),
+        VOIE_IMPRIMANTE => Ok(VOIE_IMPRIMANTE),
+        autre => Err(ErreurApplication::Validation(format!(
+            "voie d afficheur inconnue : {autre}"
+        ))),
+    }
 }
 
 pub fn valider_protocole(protocole: &str) -> Resultat<&'static str> {
@@ -131,6 +157,18 @@ pub fn trame(texte: &str, protocole: &str, colonnes: i64) -> Vec<u8> {
     octets
 }
 
+/// Octets a envoyer au spouleur quand l afficheur est chaine derriere
+/// l imprimante. La main est **rendue au rouleau** a la fin : sans cela, le
+/// ticket suivant s imprimerait sur l afficheur, c est-a-dire nulle part.
+pub fn trame_imprimante(texte: &str, colonnes: i64) -> Vec<u8> {
+    let mut octets = vec![ECHAPPEMENT, b'=', 0x02, SAUT_DE_PAGE];
+
+    octets.extend_from_slice(caler(texte, colonnes).as_bytes());
+    octets.extend_from_slice(&[ECHAPPEMENT, b'=', 0x01]);
+
+    octets
+}
+
 /// Ecran rendu a blanc : fin de vente, le montant du client precedent ne doit
 /// pas rester devant le suivant.
 pub fn trame_effacement(protocole: &str, colonnes: i64) -> Vec<u8> {
@@ -222,6 +260,23 @@ mod tests {
         assert_eq!(borner_colonnes(20), 20);
         assert!(valider_debit(9600).is_ok());
         assert!(valider_debit(7777).is_err());
+    }
+
+    #[test]
+    fn la_trame_imprimante_rend_la_main_au_rouleau() {
+        let octets = trame_imprimante("15,00", 8);
+
+        // Main a l afficheur, ecran efface, somme, main rendue a l imprimante.
+        assert_eq!(&octets[0..4], &[ECHAPPEMENT, b'=', 0x02, SAUT_DE_PAGE]);
+        assert_eq!(&octets[4..12], b"   15,00");
+        assert_eq!(&octets[12..], &[ECHAPPEMENT, b'=', 0x01]);
+    }
+
+    #[test]
+    fn n_accepte_que_les_voies_connues() {
+        assert_eq!(valider_voie(" serie ").unwrap(), VOIE_SERIE);
+        assert_eq!(valider_voie("imprimante").unwrap(), VOIE_IMPRIMANTE);
+        assert!(valider_voie("usb").is_err());
     }
 
     #[test]

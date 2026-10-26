@@ -74,23 +74,53 @@
       connus.length + " port(s) serie detecte(s) : " + connus.join(", ");
   }
 
+  // La voie serie demande un port et une vitesse ; la voie imprimante n a ni
+  // l un ni l autre, et son protocole est impose par l imprimante elle-meme.
+  function appliquerVoie() {
+    const parImprimante = element("afficheur_voie").value === "imprimante";
+
+    element("afficheur_ligne_serie").hidden = parImprimante;
+    element("afficheur_champ_protocole").hidden = parImprimante;
+
+    if (!parImprimante) {
+      element("afficheur_voie_aide").textContent =
+        "Aucun COM dans le materiel detecte ? Prends la seconde ligne : l afficheur est" +
+        " alors chaine sur la carte de l imprimante.";
+      return;
+    }
+
+    const imprimante = (reglages && reglages.imprimante) || "";
+
+    element("afficheur_voie_aide").textContent = imprimante
+      ? "les octets passent par l imprimante du ticket : " + imprimante
+      : "choisis d abord l imprimante du ticket, dans le panneau juste au-dessus";
+  }
+
   function appliquerAfficheur(courant) {
     reglages = courant;
     enPanne = false;
 
     element("afficheur_actif").checked = courant.actif;
+    element("afficheur_voie").value = courant.voie;
     element("afficheur_debit").value = String(courant.debit);
     element("afficheur_protocole").value = courant.protocole;
     element("afficheur_colonnes").value = String(courant.colonnes);
 
     remplirPorts(inventaire ? inventaire.ports_serie : []);
+    appliquerVoie();
 
     if (!courant.actif) {
       badge("badge_afficheur", "eteint", "attente");
       return;
     }
 
-    badge("badge_afficheur", courant.port || "port manquant", "succes");
+    badge(
+      "badge_afficheur",
+      courant.voie === "imprimante"
+        ? courant.imprimante || "imprimante manquante"
+        : courant.port || "port manquant",
+      "succes"
+    );
 
     if (courant.dernier_envoi) {
       element("afficheur_verdict").textContent = "dernier envoi : " + courant.dernier_envoi;
@@ -111,6 +141,7 @@
         await global.pont.appeler("enregistrer_reglages_afficheur", {
           jeton: global.acces.exiger(),
           actif: element("afficheur_actif").checked,
+          voie: element("afficheur_voie").value,
           port: element("afficheur_port").value,
           debit: global.format.entier(element("afficheur_debit").value, 9600),
           protocole: element("afficheur_protocole").value,
@@ -120,7 +151,9 @@
 
       global.notifier.succes(
         reglages.actif
-          ? "Afficheur client allume sur " + reglages.port + "."
+          ? "Afficheur client allume sur " +
+            (reglages.voie === "imprimante" ? reglages.imprimante : reglages.port) +
+            "."
           : "Afficheur client eteint."
       );
     } catch (incident) {
@@ -132,6 +165,7 @@
     try {
       const verdict = await global.pont.appeler("tester_afficheur", {
         jeton: global.acces.exiger(),
+        voie: element("afficheur_voie").value,
         port: element("afficheur_port").value,
         debit: global.format.entier(element("afficheur_debit").value, 9600),
         protocole: element("afficheur_protocole").value,
@@ -338,6 +372,7 @@
   }
 
   function initialiser() {
+    element("afficheur_voie").addEventListener("change", appliquerVoie);
     element("afficheur_enregistrer").addEventListener("click", enregistrer);
     element("afficheur_tester").addEventListener("click", tester);
     element("afficheur_effacer").addEventListener("click", effacer);

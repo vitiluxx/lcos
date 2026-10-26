@@ -7,7 +7,8 @@
  *     c est la liste ou le gerant reconnait son afficheur client, sa douchette
  *     ou son tiroir ;
  *   - l afficheur client, le petit ecran tourne vers le client : son reglage
- *     et l envoi de la somme.
+ *     et l envoi de la somme, par son propre port serie ou par le spouleur de
+ *     l imprimante quand il est chaine derriere elle.
  *
  * L inventaire passe par le fournisseur CIM de Windows, comme l enumeration
  * des imprimantes : le materiel est deja decrit par le systeme, LCOS n a pas a
@@ -36,6 +37,7 @@ const CLE_DERNIERE_DETECTION: &str = "scanner_derniere_detection";
 const CLE_SIGNATURE: &str = "scanner_signature";
 
 const CLE_AFFICHEUR_ACTIF: &str = "afficheur_actif";
+const CLE_AFFICHEUR_VOIE: &str = "afficheur_voie";
 const CLE_AFFICHEUR_PORT: &str = "afficheur_port";
 const CLE_AFFICHEUR_DEBIT: &str = "afficheur_debit";
 const CLE_AFFICHEUR_PROTOCOLE: &str = "afficheur_protocole";
@@ -300,11 +302,17 @@ fn etat_de(statut: &str) -> String {
 #[derive(Debug, Serialize)]
 pub struct ReglagesAfficheur {
     pub actif: bool,
+    /// `serie` : l afficheur a son propre port COM. `imprimante` : il est
+    /// chaine derriere l imprimante thermique et n a pas de port a lui.
+    pub voie: String,
     pub port: String,
     pub debit: i64,
     pub protocole: String,
     pub colonnes: i64,
     pub dernier_envoi: String,
+    /// Imprimante retenue pour le ticket : c est elle qui porte l afficheur
+    /// quand la voie est `imprimante`. Vide si aucune n est choisie.
+    pub imprimante: String,
 }
 
 #[tauri::command]
@@ -319,6 +327,7 @@ pub fn enregistrer_reglages_afficheur(
     jetons: State<RegistreJetons>,
     jeton: String,
     actif: bool,
+    voie: String,
     port: String,
     debit: i64,
     protocole: String,
@@ -326,23 +335,31 @@ pub fn enregistrer_reglages_afficheur(
 ) -> Resultat<ReglagesAfficheur> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
+    let voie_retenue = afficheur::valider_voie(&voie)?;
     let protocole_retenu = afficheur::valider_protocole(&protocole)?;
     let debit_retenu = afficheur::valider_debit(debit)?;
     let colonnes_retenues = afficheur::borner_colonnes(colonnes);
+    let par_le_port = actif && voie_retenue == afficheur::VOIE_SERIE;
 
-    // Un afficheur eteint n a pas besoin de port : c est le reglage d usine.
-    let port_retenu = if actif {
+    // Un afficheur eteint, ou branche derriere l imprimante, n a pas de port a
+    // lui : le reglage garde la valeur saisie sans l exiger.
+    let port_retenu = if par_le_port {
         afficheur::valider_port(&port)?
     } else {
         port.trim().to_ascii_uppercase()
     };
 
-    if actif {
+    if par_le_port {
         regler_port(&port_retenu, debit_retenu)?;
+    }
+
+    if actif && voie_retenue == afficheur::VOIE_IMPRIMANTE {
+        depot.executer(exiger_imprimante)?;
     }
 
     depot.executer(|connexion| {
         parametres::ecrire_booleen(connexion, CLE_AFFICHEUR_ACTIF, actif)?;
+        parametres::ecrire(connexion, CLE_AFFICHEUR_VOIE, voie_retenue)?;
         parametres::ecrire(connexion, CLE_AFFICHEUR_PORT, &port_retenu)?;
         parametres::ecrire(connexion, CLE_AFFICHEUR_DEBIT, &debit_retenu.to_string())?;
         parametres::ecrire(connexion, CLE_AFFICHEUR_PROTOCOLE, protocole_retenu)?;
@@ -362,14 +379,13 @@ pub fn enregistrer_reglages_afficheur(
 pub fn afficher_somme_client(depot: State<Depot>, centimes: i64, decimales: i64) -> Resultat<bool> {
     let reglages = depot.executer(charger_afficheur)?;
 
-    if !reglages.actif || reglages.port.is_empty() {
+    if !pret(&reglages) {
         return Ok(false);
     }
 
     let texte = monnaie::formater_avec(centimes, decimales);
-    let octets = afficheur::trame(&texte, &reglages.protocole, reglages.colonnes);
 
-    ecrire_sur_port(&reglages.port, &octets)?;
+    envoyer(&reglages, &texte)?;
 
     depot.executer(|connexion| parametres::horodater(connexion, CLE_AFFICHEUR_DERNIER_ENVOI))?;
 
@@ -381,24 +397,64 @@ pub fn afficher_somme_client(depot: State<Depot>, centimes: i64, decimales: i64)
 pub fn effacer_afficheur_client(depot: State<Depot>) -> Resultat<bool> {
     let reglages = depot.executer(charger_afficheur)?;
 
-    if !reglages.actif || reglages.port.is_empty() {
+    if !pret(&reglages) {
         return Ok(false);
     }
 
-    let octets = afficheur::trame_effacement(&reglages.protocole, reglages.colonnes);
-
-    ecrire_sur_port(&reglages.port, &octets)?;
+    envoyer(&reglages, "")?;
 
     Ok(true)
+}
+
+/// Un afficheur allume et joignable : la voie serie demande un port, la voie
+/// imprimante demande une imprimante retenue.
+fn pret(reglages: &ReglagesAfficheur) -> bool {
+    if !reglages.actif {
+        return false;
+    }
+
+    if reglages.voie == afficheur::VOIE_IMPRIMANTE {
+        return !reglages.imprimante.is_empty();
+    }
+
+    !reglages.port.is_empty()
+}
+
+/// Seul endroit qui sait par ou passent les octets.
+fn envoyer(reglages: &ReglagesAfficheur, texte: &str) -> Resultat<()> {
+    if reglages.voie == afficheur::VOIE_IMPRIMANTE {
+        let octets = afficheur::trame_imprimante(texte, reglages.colonnes);
+
+        return super::impression::envoyer_octets(&reglages.imprimante, &octets);
+    }
+
+    let octets = afficheur::trame(texte, &reglages.protocole, reglages.colonnes);
+
+    ecrire_sur_port(&reglages.port, &octets)
+}
+
+fn exiger_imprimante(connexion: &rusqlite::Connection) -> Resultat<String> {
+    let nom = super::impression::imprimante_retenue(connexion)?;
+
+    if nom.trim().is_empty() {
+        return Err(ErreurApplication::Conflit(
+            "afficheur derriere l imprimante : choisis d abord l imprimante du ticket, plus haut dans cet ecran".to_string(),
+        ));
+    }
+
+    Ok(nom)
 }
 
 /// Essai depuis le parametrage : le gerant regarde l ecran arriere pendant que
 /// LCOS y pose une somme. Les reglages passes ne sont pas encore enregistres,
 /// pour essayer un port avant de le retenir.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn tester_afficheur(
+    depot: State<Depot>,
     jetons: State<RegistreJetons>,
     jeton: String,
+    voie: String,
     port: String,
     debit: i64,
     protocole: String,
@@ -406,10 +462,23 @@ pub fn tester_afficheur(
 ) -> Resultat<String> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
+    let voie_retenue = afficheur::valider_voie(&voie)?;
     let protocole_retenu = afficheur::valider_protocole(&protocole)?;
+    let colonnes_retenues = afficheur::borner_colonnes(colonnes);
+
+    if voie_retenue == afficheur::VOIE_IMPRIMANTE {
+        let imprimante = depot.executer(exiger_imprimante)?;
+        let octets = afficheur::trame_imprimante("123,45", colonnes_retenues);
+
+        super::impression::envoyer_octets(&imprimante, &octets)?;
+
+        return Ok(format!(
+            "123,45 envoye a travers {imprimante} : regarde l ecran du client."
+        ));
+    }
+
     let debit_retenu = afficheur::valider_debit(debit)?;
     let port_retenu = afficheur::valider_port(&port)?;
-    let colonnes_retenues = afficheur::borner_colonnes(colonnes);
 
     regler_port(&port_retenu, debit_retenu)?;
 
@@ -435,9 +504,16 @@ fn charger_afficheur(connexion: &rusqlite::Connection) -> Resultat<ReglagesAffic
     let texte = |cle: &str| -> String { valeurs.get(cle).cloned().unwrap_or_default() };
 
     let protocole = texte(CLE_AFFICHEUR_PROTOCOLE);
+    let voie = texte(CLE_AFFICHEUR_VOIE);
 
     Ok(ReglagesAfficheur {
         actif: texte(CLE_AFFICHEUR_ACTIF) == "oui",
+        voie: if voie.is_empty() {
+            afficheur::VOIE_SERIE.to_string()
+        } else {
+            voie
+        },
+        imprimante: super::impression::imprimante_retenue(connexion)?,
         port: texte(CLE_AFFICHEUR_PORT),
         debit: entier(CLE_AFFICHEUR_DEBIT, afficheur::DEBIT_DEFAUT),
         protocole: if protocole.is_empty() {
