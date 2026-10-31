@@ -337,7 +337,8 @@
       encaissementEnCours || panier.length === 0 || recu < total;
 
     // L ecran du client suit le total, jamais la somme recue : c est le
-    // montant a payer que le client verifie.
+    // montant a payer que le client verifie. Ce qu on lui rend lui est montre
+    // apres l encaissement, par poserRendu.
     global.vueAfficheur.poserSomme(total);
   }
 
@@ -875,6 +876,12 @@
       });
 
       afficherTicket(ticket);
+
+      // Ce qu on rend au client passe sur son ecran avant que le panier ne
+      // soit vide : vider remet le total a zero, et l afficheur recevrait
+      // cette remise a zero dans la meme foulee. poserRendu lui tient la
+      // main quelques secondes, le temps que le client lise sa monnaie.
+      global.vueAfficheur.poserRendu(ticket.rendu_centimes);
 
       if (ticket.impression_recu) {
         global.notifier.succes(

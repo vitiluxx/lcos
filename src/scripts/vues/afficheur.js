@@ -18,15 +18,26 @@
 
   const element = global.format.element;
 
-  // Deux envois rapproches sur un port serie a 9600 bauds se marchent dessus :
-  // on ne pousse que la derniere somme d une rafale de frappes.
+  // Deux envois rapproches sur un port serie lent se marchent dessus : on ne
+  // pousse que la derniere somme d une rafale de frappes.
   const DELAI_ENVOI_MS = 120;
+
+  // Combien de temps le rendu reste devant le client apres l encaissement.
+  // Sans ce delai il disparaitrait aussitot : vider le panier remet le total
+  // a zero, et la caisse redemande donc zero dans la meme foulee.
+  const DUREE_RENDU_MS = 8000;
 
   let reglages = null;
   let inventaire = null;
   let minuterie = null;
   let dernierEnvoi = null;
   let enPanne = false;
+
+  // Instant jusqu auquel le rendu garde l ecran, et la remise a zero mise de
+  // cote en attendant.
+  let renduJusqu = 0;
+  let relacheRendu = null;
+  let sommeDifferee = null;
 
   // Ce qu un verdict de sonde vaut a l oeil : vert quand un appareil s est
   // manifeste, rouge quand le port est hors d atteinte, gris quand rien n est
@@ -266,19 +277,10 @@
     }
   }
 
-  // Appelee par la caisse a chaque changement du total. Volontairement muette :
-  // le caissier encaisse, il n a pas a lire des messages d afficheur.
-  function poserSomme(centimes) {
-    if (!reglages || !reglages.actif || enPanne) {
-      return;
-    }
-
-    const valeur = Number(centimes) || 0;
-
-    if (valeur === dernierEnvoi) {
-      return;
-    }
-
+  // Seul endroit qui pousse une somme sur l ecran. Le nombre de decimales
+  // suit le parametrage de la devise : deux pour un euro, zero pour une
+  // monnaie qui ne se subdivise pas.
+  function pousser(valeur) {
     dernierEnvoi = valeur;
 
     if (minuterie !== null) {
@@ -304,6 +306,81 @@
         );
       }
     }, DELAI_ENVOI_MS);
+  }
+
+  // Rend la main au total courant, rendu lu ou vente suivante commencee.
+  function liberer() {
+    renduJusqu = 0;
+    sommeDifferee = null;
+
+    if (relacheRendu !== null) {
+      clearTimeout(relacheRendu);
+      relacheRendu = null;
+    }
+  }
+
+  // Le rendu a fini son temps : la remise a zero mise de cote part enfin.
+  function expirerRendu() {
+    const differee = sommeDifferee;
+
+    liberer();
+
+    if (differee !== null && differee !== dernierEnvoi) {
+      pousser(differee);
+    }
+  }
+
+  // Appelee par la caisse a chaque changement du total, donc a chaque article
+  // scanne, ajoute a la main ou retire. Volontairement muette : le caissier
+  // encaisse, il n a pas a lire des messages d afficheur.
+  function poserSomme(centimes) {
+    if (!reglages || !reglages.actif || enPanne) {
+      return;
+    }
+
+    const valeur = Number(centimes) || 0;
+
+    // Le rendu du client precedent est encore devant lui. Une somme nulle est
+    // le panier qu on vient de vider : elle attend son tour. Une somme non
+    // nulle est la vente suivante, qui reprend la main sans attendre : le
+    // client d apres ne doit pas lire la monnaie du precedent.
+    if (Date.now() < renduJusqu) {
+      if (valeur === 0) {
+        sommeDifferee = valeur;
+        return;
+      }
+
+      liberer();
+    }
+
+    if (valeur === dernierEnvoi) {
+      return;
+    }
+
+    pousser(valeur);
+  }
+
+  // Appelee par la caisse juste apres un encaissement, avec ce qui revient au
+  // client. L ecran le garde quelques secondes, le temps qu il le lise.
+  function poserRendu(centimes) {
+    if (!reglages || !reglages.actif || enPanne) {
+      return;
+    }
+
+    const valeur = Number(centimes) || 0;
+
+    // Compte juste : rien a rendre, rien a montrer. Le total encaisse reste
+    // affiche jusqu a la vente suivante.
+    if (valeur <= 0) {
+      return;
+    }
+
+    liberer();
+
+    renduJusqu = Date.now() + DUREE_RENDU_MS;
+    relacheRendu = setTimeout(expirerRendu, DUREE_RENDU_MS);
+
+    pousser(valeur);
   }
 
   /*
@@ -524,6 +601,7 @@
     initialiser: initialiser,
     rafraichir: rafraichir,
     poserSomme: poserSomme,
+    poserRendu: poserRendu,
     actif: function () {
       return Boolean(reglages && reglages.actif);
     }

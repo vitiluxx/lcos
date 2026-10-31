@@ -1,0 +1,20 @@
+ce post possède un petit afficheur client de 2 lignes intégré au boîtier. Je ne sais pas comment il est relié à l'ordinateur (port série COM interne, USB, ou autre).
+
+Objectif : identifier précisément quel périphérique interne correspond à cet afficheur 2 lignes, et comment l'utiliser (port, vitesse, protocole).
+
+Règles de sécurité :
+- Commence par des commandes en LECTURE SEULE uniquement. Ne modifie rien dans Windows ni dans le registre.
+- N'installe aucun pilote et ne télécharge aucun fichier sans m'avoir montré la source et obtenu mon accord.
+
+Étapes :
+1. Liste tous les périphériques avec PowerShell, par exemple :
+   - Get-PnpDevice | Select Status, Class, FriendlyName, InstanceId
+   - Get-CimInstance Win32_SerialPort | Select DeviceID, Description, PNPDeviceID
+   - Get-CimInstance Win32_USBControllerDevice
+   - la liste des ports COM et leur correspondance (Win32_PnPEntity filtré sur "COM")
+2. Repère les candidats probables à l'afficheur client : ports COM internes, puces série USB (CH340, FTDI, Prolific, CP210x), périphériques HID ou "customer display" / "pole display" / "VFD", et les périphériques « inconnus » avec un point d'exclamation.
+3. Pour chaque candidat, note le COMx, le VID/PID, le fabricant, et dis-moi ce que tu en déduis. Exclus ce qui correspond clairement à l'imprimante, à l'écran tactile ou à la souris.
+4. Dis-moi quels tests tu proposes (envoi d'un court texte sur le COM probable avec les vitesses courantes 9600, 2400 et 19200 bauds, protocoles ESC/POS, CD5220 ou compatibles), dans quel ordre, et quel risque présente chaque test. Attends mon accord avant de lancer chacun.
+5. À la fin, fais-moi un résumé clair : quel port, quelle vitesse, quel protocole, et comment le configurer dans mon logiciel de caisse.
+
+powershell -File outils\sonder_afficheur_lpt1.ps1 -Protocoles

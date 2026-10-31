@@ -161,11 +161,24 @@ pub fn chemin_port(port: &str) -> String {
 
 /// Somme calee a droite sur la largeur de l ecran : les chiffres restent
 /// alignes d une vente a l autre, le client lit toujours au meme endroit.
+///
+/// La somme est d abord mise a la forme que les afficheurs savent rendre :
+/// la **virgule decimale devient un point** et les **separateurs de
+/// milliers sautent**. Les afficheurs numeriques de ce marche n ont qu un
+/// point decimal et ignorent tout le reste, sans rien signaler : sur la
+/// caisse P70L, `1 500,00` s affichait `150000`, soit cent cinquante mille
+/// au lieu de mille cinq cents. Le point, lui, est rendu partout, et un
+/// afficheur alphanumerique affiche `1500.00` aussi bien. Mesure sur le
+/// materiel, voir recherches/journal_afficheur.md, essais 24 a 27.
 pub fn caler(texte: &str, colonnes: i64) -> String {
     let largeur = borner_colonnes(colonnes) as usize;
     let propre: String = texte
         .chars()
-        .filter(|caractere| caractere.is_ascii_graphic() || *caractere == ' ')
+        .map(|caractere| if caractere == ',' { '.' } else { caractere })
+        // Les espaces ne sont pas `ascii_graphic` : les ecarter ici suffit a
+        // retirer l espace des milliers comme l espace insecable du
+        // formatage francais.
+        .filter(|caractere| caractere.is_ascii_graphic())
         .collect();
 
     if propre.chars().count() >= largeur {
@@ -534,7 +547,7 @@ mod tests {
 
     #[test]
     fn cale_la_somme_a_droite() {
-        assert_eq!(caler("1 500,00", 12), "    1 500,00");
+        assert_eq!(caler("1 500,00", 12), "     1500.00");
         assert_eq!(caler("", 8), "        ");
     }
 
@@ -546,8 +559,26 @@ mod tests {
     }
 
     #[test]
+    fn met_la_somme_a_la_forme_que_l_ecran_sait_rendre() {
+        // Mesure sur la caisse P70L : l afficheur n a qu un point decimal et
+        // ignore la virgule comme l espace, sans rien signaler. `1 500,00`
+        // s y affichait `150000`, soit cent cinquante mille au lieu de mille
+        // cinq cents. Une somme fausse devant le client, et aucun envoi en
+        // echec pour le trahir.
+        assert_eq!(caler("1 500,00", 8), " 1500.00");
+
+        // Le formatage francais place parfois un espace insecable, ou une
+        // espace fine insecable, entre les milliers.
+        assert_eq!(caler("1\u{a0}500,00", 8), " 1500.00");
+        assert_eq!(caler("1\u{202f}500,00", 8), " 1500.00");
+
+        // Retirer les milliers rend des colonnes, et l ecran n en a que huit.
+        assert_eq!(caler("1 234 567,89", 12), "  1234567.89");
+    }
+
+    #[test]
     fn ecarte_les_caracteres_que_l_ecran_ne_sait_pas_rendre() {
-        assert_eq!(caler("15,00\n\r", 8), "   15,00");
+        assert_eq!(caler("15,00\n\r", 8), "   15.00");
     }
 
     #[test]
@@ -555,7 +586,7 @@ mod tests {
         let octets = trame("15,00", PROTOCOLE_TEXTE, 8);
 
         assert_eq!(octets[0], SAUT_DE_PAGE);
-        assert_eq!(&octets[1..], b"   15,00");
+        assert_eq!(&octets[1..], b"   15.00");
     }
 
     #[test]
@@ -563,7 +594,7 @@ mod tests {
         let octets = trame("15,00", PROTOCOLE_CD5220, 8);
 
         assert_eq!(&octets[0..3], &[ECHAPPEMENT, b'Q', b'A']);
-        assert_eq!(&octets[3..11], b"   15,00");
+        assert_eq!(&octets[3..11], b"   15.00");
         assert_eq!(octets[11], RETOUR_CHARIOT);
     }
 
@@ -577,7 +608,7 @@ mod tests {
             &[ECHAPPEMENT, b'=', 0x02, ECHAPPEMENT, b'=', 0x32]
         );
         assert_eq!(octets[6], SAUT_DE_PAGE);
-        assert_eq!(&octets[7..], b"   15,00");
+        assert_eq!(&octets[7..], b"   15.00");
     }
 
     #[test]
@@ -615,7 +646,7 @@ mod tests {
         let octets = trame("15,00", PROTOCOLE_AEDEX, 8);
 
         assert_eq!(&octets[0..3], b"!#1");
-        assert_eq!(&octets[3..11], b"   15,00");
+        assert_eq!(&octets[3..11], b"   15.00");
         assert_eq!(octets[11], RETOUR_CHARIOT);
     }
 
@@ -624,7 +655,7 @@ mod tests {
         let octets = trame("15,00", PROTOCOLE_UTC, 8);
 
         assert_eq!(&octets[0..3], &[ECHAPPEMENT, b'u', b'A']);
-        assert_eq!(&octets[3..11], b"   15,00");
+        assert_eq!(&octets[3..11], b"   15.00");
         assert_eq!(octets[11], RETOUR_CHARIOT);
     }
 
@@ -633,7 +664,7 @@ mod tests {
         let octets = trame("15,00", PROTOCOLE_ADM, 8);
 
         assert_eq!(octets[0], EFFACE_LIGNE_HAUTE);
-        assert_eq!(&octets[1..], b"   15,00");
+        assert_eq!(&octets[1..], b"   15.00");
     }
 
     #[test]
@@ -686,7 +717,7 @@ mod tests {
         // Main a l afficheur, ecran efface, somme, main rendue a l imprimante.
         assert_eq!(&octets[0..6], &VERS_AFFICHEUR);
         assert_eq!(octets[6], SAUT_DE_PAGE);
-        assert_eq!(&octets[7..15], b"   15,00");
+        assert_eq!(&octets[7..15], b"   15.00");
         assert_eq!(&octets[15..], &VERS_IMPRIMANTE);
     }
 
