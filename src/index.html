@@ -1479,9 +1479,18 @@
           </article>
 
           <article class="carte">
-            <h2 class="carte__titre">Signature materielle</h2>
+            <h2 class="carte__titre">Frappe relevee</h2>
             <p class="carte__valeur carte__valeur--code" id="valeur_signature">--</p>
             <p class="carte__detail">detectee le <span id="valeur_derniere_detection">jamais</span></p>
+          </article>
+
+          <article class="carte">
+            <h2 class="carte__titre">Appareil designe</h2>
+            <p class="carte__valeur carte__valeur--code" id="valeur_materiel">--</p>
+            <p class="carte__detail">
+              identite USB du lecteur : elle survit au changement de prise et au
+              redemarrage, la cadence de frappe non
+            </p>
           </article>
         </div>
 
@@ -1492,6 +1501,16 @@
           <p class="vue_peripheriques__aide">
             Si la douchette n est pas reconnue, lance la calibration : toute frappe est alors
             acceptee et les mesures reelles du lecteur s affichent.
+          </p>
+        </div>
+
+        <div class="vue_peripheriques__actions">
+          <select class="champ__liste" id="scanner_materiel"></select>
+          <button class="bouton" id="scanner_designer" type="button">Retenir cet appareil</button>
+          <p class="vue_peripheriques__aide" id="scanner_materiel_aide">
+            Designe l appareil qui sert de douchette. Les appareils proposes sont ceux qui
+            tapent des touches : le lecteur en est un, le clavier de la caisse aussi. Releve
+            le materiel, plus bas, pour remplir cette liste.
           </p>
         </div>
 
@@ -1623,10 +1642,14 @@
                   <option value="texte">Texte brut</option>
                   <option value="cd5220">CD5220 (afficheur 2x20)</option>
                   <option value="escpos">ESC/POS (afficheur chaine sur l imprimante)</option>
+                  <option value="aedex">AEDEX</option>
+                  <option value="utc">UTC Enhanced</option>
+                  <option value="adm">ADM 787 / 788</option>
                 </select>
                 <span class="champ__aide">
-                  Commence par Texte brut. Si l ecran ne s efface pas entre deux clients,
-                  essaie CD5220.
+                  Aucun afficheur ne dit lequel il parle : essaie-les dans l ordre de la
+                  liste en regardant l ecran du client. Si rien ne vient apres les six,
+                  change la vitesse plutot que de recommencer.
                 </span>
               </div>
               <div class="champ">
@@ -1646,12 +1669,14 @@
               <button class="bouton bouton--principal" id="afficheur_enregistrer" type="button">
                 Enregistrer
               </button>
+              <button class="bouton" id="afficheur_sonder" type="button">Sonder le port</button>
               <button class="bouton" id="afficheur_tester" type="button">
                 Afficher 123,45 pour voir
               </button>
               <button class="bouton" id="afficheur_effacer" type="button">Effacer l ecran</button>
             </div>
 
+            <p class="zone_verdict zone_verdict--neutre" id="afficheur_sonde" hidden></p>
             <p class="champ__aide" id="afficheur_verdict">aucun envoi depuis le demarrage</p>
           </div>
         </div>
@@ -1669,6 +1694,25 @@
             </div>
             <span class="badge badge--attente" id="badge_inventaire">non releve</span>
           </div>
+
+          <div class="cadre_tableau">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th>Ecran</th>
+                  <th>Role</th>
+                  <th>Resolution</th>
+                  <th>Modele</th>
+                </tr>
+              </thead>
+              <tbody id="ecrans_liste"></tbody>
+            </table>
+          </div>
+
+          <p class="champ__aide" id="ecrans_resume">
+            Les vrais moniteurs de ce poste. L afficheur client n y figure jamais :
+            Windows ne le voit pas comme un ecran.
+          </p>
 
           <div class="caisse__recherche" data-saisie="clavier">
             <input

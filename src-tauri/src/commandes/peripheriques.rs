@@ -5,10 +5,10 @@
  *   - les reglages de la douchette code-barres (cadence, longueur) ;
  *   - l inventaire du materiel que Windows connait, interne comme branche :
  *     c est la liste ou le gerant reconnait son afficheur client, sa douchette
- *     ou son tiroir ;
- *   - l afficheur client, le petit ecran tourne vers le client : son reglage
- *     et l envoi de la somme, par son propre port serie ou par le spouleur de
- *     l imprimante quand il est chaine derriere elle.
+ *     ou son tiroir. Il porte aussi les ecrans reellement branches et les
+ *     douchettes candidates, pour que le gerant n ait rien a deviner ;
+ *   - l afficheur client, le petit ecran tourne vers le client : son reglage,
+ *     l envoi de la somme, et la sonde qui cherche a prouver sa presence.
  *
  * L inventaire passe par le fournisseur CIM de Windows, comme l enumeration
  * des imprimantes : le materiel est deja decrit par le systeme, LCOS n a pas a
@@ -21,9 +21,11 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::depot::{parametres, Depot};
-use crate::domaine::afficheur;
+use crate::domaine::afficheur::{self, Sonde};
 use crate::domaine::code_barres::{self, AnalyseCodeBarres};
+use crate::domaine::ecran::{self, Ecran};
 use crate::domaine::monnaie;
+use crate::domaine::usb;
 use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
 use crate::securite::RegistreJetons;
@@ -35,6 +37,7 @@ const CLE_INACTIVITE: &str = "scanner_delai_inactivite";
 const CLE_DETECTE: &str = "scanner_detecte";
 const CLE_DERNIERE_DETECTION: &str = "scanner_derniere_detection";
 const CLE_SIGNATURE: &str = "scanner_signature";
+const CLE_MATERIEL: &str = "scanner_materiel";
 
 const CLE_AFFICHEUR_ACTIF: &str = "afficheur_actif";
 const CLE_AFFICHEUR_VOIE: &str = "afficheur_voie";
@@ -50,6 +53,14 @@ const CREATION_SANS_FENETRE: u32 = 0x0800_0000;
 /// avec les pilotes systeme : au-dela, l ecran ne sert plus a rien.
 const PERIPHERIQUES_LISTES: usize = 500;
 
+/// Verdicts de sonde qui rendent l envoi inutile ou dangereux.
+const VERDICTS_INJOIGNABLES: [&str; 4] = [
+    afficheur::SONDE_ABSENT,
+    afficheur::SONDE_OCCUPE,
+    afficheur::SONDE_INVALIDE,
+    afficheur::SONDE_BLOQUE,
+];
+
 const BORNES_DELAI_MAX: (i64, i64) = (5, 500);
 const BORNES_LONGUEUR_MIN: (i64, i64) = (1, 64);
 const BORNES_INACTIVITE: (i64, i64) = (20, 2000);
@@ -63,7 +74,14 @@ pub struct ReglagesScanner {
     pub delai_inactivite: i64,
     pub detecte: bool,
     pub derniere_detection: String,
+    /// Signature de comportement : suffixe, longueur, cadence. Elle dit
+    /// comment la douchette tape, pas quel appareil elle est.
     pub signature: String,
+    /// Identite materielle `VID:PID` de la douchette retenue. C est elle qui
+    /// survit a un changement de port ou a un redemarrage. Vide tant que le
+    /// gerant n a pas designe l appareil.
+    #[serde(default)]
+    pub materiel: String,
 }
 
 #[tauri::command]
@@ -90,11 +108,16 @@ pub fn enregistrer_reglages_scanner(
     })
 }
 
-/// Enregistre la douchette comme reconnue : signature materielle et horodatage.
+/// Enregistre la douchette comme reconnue : signature de comportement,
+/// horodatage, et identite materielle quand elle est connue sans ambiguite.
+///
+/// Sans jeton : la detection se fait au premier scan, avant toute ouverture de
+/// session, et c est tout l interet.
 #[tauri::command]
 pub fn enregistrer_detection_scanner(
     depot: State<Depot>,
     signature: String,
+    materiel: Option<String>,
 ) -> Resultat<ReglagesScanner> {
     let signature_nettoyee = signature.trim();
 
@@ -108,10 +131,38 @@ pub fn enregistrer_detection_scanner(
         )));
     }
 
+    let identite = usb::valider_identite(&materiel.unwrap_or_default())?;
+
     depot.executer(|connexion| {
         parametres::ecrire(connexion, CLE_DETECTE, "oui")?;
         parametres::ecrire(connexion, CLE_SIGNATURE, signature_nettoyee)?;
         parametres::horodater(connexion, CLE_DERNIERE_DETECTION)?;
+
+        // Une identite deja retenue n est pas ecrasee par un scan : seul le
+        // gerant la change, par `designer_douchette`.
+        if !identite.is_empty() && parametres::lire_ou(connexion, CLE_MATERIEL, "")?.is_empty() {
+            parametres::ecrire(connexion, CLE_MATERIEL, &identite)?;
+        }
+
+        charger(connexion)
+    })
+}
+
+/// Douchette designee par le gerant parmi les candidats de l inventaire.
+/// Une identite vide efface la designation.
+#[tauri::command]
+pub fn designer_douchette(
+    depot: State<Depot>,
+    jetons: State<RegistreJetons>,
+    jeton: String,
+    materiel: String,
+) -> Resultat<ReglagesScanner> {
+    jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    let identite = usb::valider_identite(&materiel)?;
+
+    depot.executer(|connexion| {
+        parametres::ecrire(connexion, CLE_MATERIEL, &identite)?;
 
         charger(connexion)
     })
@@ -141,6 +192,20 @@ pub struct Peripherique {
     pub identifiant: String,
 }
 
+/// Une douchette possible. Un lecteur en mode clavier se declare toujours
+/// comme un clavier : c est le seul filtre qui ait un sens ici, puisque LCOS
+/// ne lit les codes-barres que par les frappes.
+#[derive(Debug, Serialize)]
+pub struct CandidatDouchette {
+    /// `VID:PID`, l identite stable de l appareil.
+    pub materiel: String,
+    pub nom: String,
+    /// Nombre d interfaces que l appareil presente a Windows. Un clavier de
+    /// caisse en expose plusieurs (touches, pave, lecteur de carte) ; une
+    /// douchette n en a le plus souvent qu une ou deux.
+    pub interfaces: i64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Inventaire {
     pub releve_le: String,
@@ -149,6 +214,12 @@ pub struct Inventaire {
     /// Ports serie libres de tout nom : c est la liste a proposer pour
     /// l afficheur client.
     pub ports_serie: Vec<String>,
+    /// Vrais moniteurs branches. L afficheur client n y figure jamais : voir
+    /// `domaine::ecran`.
+    pub ecrans: Vec<Ecran>,
+    /// Appareils qui pourraient etre la douchette, pour que le gerant la
+    /// designe au lieu de la deviner.
+    pub douchettes: Vec<CandidatDouchette>,
     pub peripheriques: Vec<Peripherique>,
 }
 
@@ -175,6 +246,11 @@ pub fn inventorier_peripheriques(
     let nombre = peripheriques.len();
     let tronque = nombre > PERIPHERIQUES_LISTES;
 
+    // Les candidats sont tires de la liste entiere, avant l ecourtement :
+    // la douchette ne doit pas disparaitre parce que le poste porte mille
+    // pilotes.
+    let douchettes = candidats_douchette(&peripheriques);
+
     peripheriques.truncate(PERIPHERIQUES_LISTES);
 
     let mut ports_serie: Vec<String> = peripheriques
@@ -193,8 +269,88 @@ pub fn inventorier_peripheriques(
         nombre: nombre as i64,
         tronque,
         ports_serie,
+        ecrans: relever_ecrans()?,
+        douchettes,
         peripheriques,
     })
+}
+
+/// Les ecrans que Windows gere reellement, avec leur rang et leur resolution.
+/// `Win32_PnPEntity` dit qu un moniteur existe ; lui seul ne dit pas lequel
+/// est celui du caissier.
+fn relever_ecrans() -> Resultat<Vec<Ecran>> {
+    let sortie = lancer(&["-NoProfile", "-NonInteractive", "-Command", ecran::CONSIGNE])?;
+
+    // Un releve d ecrans rate n est pas une raison de perdre l inventaire :
+    // le materiel liste reste la seule information indispensable.
+    if !sortie.status.success() {
+        return Ok(Vec::new());
+    }
+
+    Ok(ecran::lire(&String::from_utf8_lossy(&sortie.stdout)))
+}
+
+/// Appareils qui presentent un clavier a Windows, regroupes par identite
+/// materielle. La douchette de la caisse est forcement l un d eux ; le clavier
+/// du caissier aussi, d ou le choix laisse au gerant.
+fn candidats_douchette(peripheriques: &[Peripherique]) -> Vec<CandidatDouchette> {
+    let mut candidats: Vec<CandidatDouchette> = Vec::new();
+
+    for appareil in peripheriques {
+        let Some(materiel) = usb::identite(&appareil.identifiant) else {
+            continue;
+        };
+
+        let clavier = est_un_clavier(appareil);
+        let connu = candidats
+            .iter()
+            .position(|candidat| candidat.materiel == materiel);
+
+        let Some(rang) = connu else {
+            candidats.push(CandidatDouchette {
+                materiel,
+                nom: appareil.nom.clone(),
+                interfaces: 1,
+            });
+
+            continue;
+        };
+
+        candidats[rang].interfaces += 1;
+
+        // Le nom de l interface clavier est le plus parlant des noms qu un
+        // appareil porte : il remplace celui retenu avant lui.
+        if clavier {
+            candidats[rang].nom = appareil.nom.clone();
+        }
+    }
+
+    // Seuls les appareils qui tapent des touches peuvent etre lus par LCOS :
+    // une douchette reglee en mode serie ou HID-POS n arrive jamais par les
+    // frappes, et la proposer serait mentir.
+    let claviers: Vec<String> = peripheriques
+        .iter()
+        .filter(|appareil| est_un_clavier(appareil))
+        .filter_map(|appareil| usb::identite(&appareil.identifiant))
+        .collect();
+
+    candidats.retain(|candidat| claviers.contains(&candidat.materiel));
+
+    // Le plus probable en tete : une douchette expose moins d interfaces qu un
+    // clavier de caisse, qui porte aussi son pave et parfois un lecteur de
+    // carte.
+    candidats.sort_by(|gauche, droite| {
+        gauche
+            .interfaces
+            .cmp(&droite.interfaces)
+            .then(gauche.nom.to_lowercase().cmp(&droite.nom.to_lowercase()))
+    });
+
+    candidats
+}
+
+fn est_un_clavier(appareil: &Peripherique) -> bool {
+    appareil.famille.eq_ignore_ascii_case("Keyboard")
 }
 
 /// `Win32_PnPEntity` liste le materiel que le systeme a monte, quel que soit
@@ -445,9 +601,67 @@ fn exiger_imprimante(connexion: &rusqlite::Connection) -> Resultat<String> {
     Ok(nom)
 }
 
+/*
+ * -------------------------------- la sonde ---------------------------------
+ */
+
+/// Cherche a prouver qu un afficheur est au bout du cable, sans rien afficher.
+/// Reserve au gerant : la sonde ouvre un port et manipule ses lignes.
+#[tauri::command]
+pub fn sonder_afficheur(
+    jetons: State<RegistreJetons>,
+    jeton: String,
+    port: String,
+    debit: i64,
+    protocole: String,
+) -> Resultat<Sonde> {
+    jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    let port_retenu = afficheur::valider_port(&port)?;
+    let debit_retenu = afficheur::valider_debit(debit)?;
+    let protocole_retenu = afficheur::valider_protocole(&protocole)?;
+
+    sonder(&port_retenu, debit_retenu, protocole_retenu)
+}
+
+fn sonder(port: &str, debit: i64, protocole: &str) -> Resultat<Sonde> {
+    let consigne = afficheur::consigne_sonde(port, debit, &afficheur::interrogation(protocole));
+    let sortie = lancer(&["-NoProfile", "-NonInteractive", "-Command", &consigne])?;
+
+    // La consigne rattrape ses propres incidents et sort toujours en reussite :
+    // une sortie vide ne peut venir que d un PowerShell absent, et `lire_sonde`
+    // la traduit en verdict `illisible`.
+    Ok(afficheur::lire_sonde(&String::from_utf8_lossy(
+        &sortie.stdout,
+    )))
+}
+
+/// Resultat d un essai d affichage. Le message se lit tel quel ; `prouve` dit
+/// s il faut le presenter comme une reussite ou comme un simple envoi, car un
+/// envoi reussi sur un port serie ne prouve rien par lui-meme.
+#[derive(Debug, Serialize)]
+pub struct Essai {
+    pub message: String,
+    /// Verdict de la sonde qui a precede l envoi. Vide pour la voie
+    /// imprimante : il n y a pas de port a sonder derriere un spouleur.
+    pub verdict: String,
+    pub prouve: bool,
+}
+
+/// Verdicts qui rendent l envoi inutile ou dangereux. `bloque` en fait partie :
+/// la vitesse du port est posee avec `to=on`, donc une ligne tenue par
+/// l appareil ferait attendre l ecriture sans fin.
+fn port_injoignable(verdict: &str) -> bool {
+    VERDICTS_INJOIGNABLES.contains(&verdict)
+}
+
 /// Essai depuis le parametrage : le gerant regarde l ecran arriere pendant que
 /// LCOS y pose une somme. Les reglages passes ne sont pas encore enregistres,
 /// pour essayer un port avant de le retenir.
+///
+/// Le port est sonde avant l envoi. Ecrire sur un port serie reussit toujours,
+/// meme sans rien au bout du cable : sans cette passe, l essai annoncait une
+/// reussite qui ne prouvait rien.
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn tester_afficheur(
@@ -459,7 +673,7 @@ pub fn tester_afficheur(
     debit: i64,
     protocole: String,
     colonnes: i64,
-) -> Resultat<String> {
+) -> Resultat<Essai> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
     let voie_retenue = afficheur::valider_voie(&voie)?;
@@ -472,13 +686,26 @@ pub fn tester_afficheur(
 
         super::impression::envoyer_octets(&imprimante, &octets)?;
 
-        return Ok(format!(
-            "123,45 envoye a travers {imprimante} : regarde l ecran du client."
-        ));
+        // Le spouleur accepte les octets sans rien dire de ce qui est au bout :
+        // rien n est prouve ici non plus.
+        return Ok(Essai {
+            message: format!("123,45 envoye a travers {imprimante} : regarde l ecran du client."),
+            verdict: String::new(),
+            prouve: false,
+        });
     }
 
     let debit_retenu = afficheur::valider_debit(debit)?;
     let port_retenu = afficheur::valider_port(&port)?;
+
+    let sonde = sonder(&port_retenu, debit_retenu, protocole_retenu)?;
+
+    if port_injoignable(&sonde.verdict) {
+        return Err(ErreurApplication::Conflit(format!(
+            "{port_retenu} : {}",
+            sonde.detail
+        )));
+    }
 
     regler_port(&port_retenu, debit_retenu)?;
 
@@ -486,9 +713,23 @@ pub fn tester_afficheur(
 
     ecrire_sur_port(&port_retenu, &octets)?;
 
-    Ok(format!(
-        "123,45 envoye sur {port_retenu} a {debit_retenu} bauds : regarde l ecran du client."
-    ))
+    let message = if sonde.prouve {
+        format!(
+            "Afficheur reconnu sur {port_retenu} ({}). 123,45 envoye a {debit_retenu} bauds.",
+            sonde.verdict
+        )
+    } else {
+        format!(
+            "123,45 envoye sur {port_retenu} a {debit_retenu} bauds, mais {}",
+            sonde.detail
+        )
+    };
+
+    Ok(Essai {
+        message,
+        verdict: sonde.verdict,
+        prouve: sonde.prouve,
+    })
 }
 
 fn charger_afficheur(connexion: &rusqlite::Connection) -> Resultat<ReglagesAfficheur> {
@@ -611,6 +852,7 @@ fn charger(connexion: &rusqlite::Connection) -> Resultat<ReglagesScanner> {
         detecte: texte(CLE_DETECTE) == "oui",
         derniere_detection: texte(CLE_DERNIERE_DETECTION),
         signature: texte(CLE_SIGNATURE),
+        materiel: texte(CLE_MATERIEL),
     })
 }
 
@@ -681,5 +923,129 @@ mod tests {
         let consigne = afficheur::consigne_mode("COM3", 9600);
 
         assert!(consigne.starts_with("mode COM3: BAUD=9600"));
+    }
+
+    fn appareil(nom: &str, famille: &str, identifiant: &str) -> Peripherique {
+        Peripherique {
+            nom: nom.to_string(),
+            famille: famille.to_string(),
+            liaison: liaison_de(identifiant),
+            etat: "en service".to_string(),
+            fabricant: String::new(),
+            port: port_dans(nom),
+            identifiant: identifiant.to_string(),
+        }
+    }
+
+    /// Releve reel d une caisse : clavier integre a trois interfaces, douchette
+    /// a deux, dalle tactile, et du materiel interne sans identite USB.
+    fn poste() -> Vec<Peripherique> {
+        vec![
+            appareil(
+                "Peripherique clavier IHM",
+                "Keyboard",
+                "HID\\VID_C0F4&PID_07C0&MI_00\\8&203712E9&0&0000",
+            ),
+            appareil(
+                "Peripherique d entree USB",
+                "HIDClass",
+                "USB\\VID_C0F4&PID_07C0&MI_00\\7&38058586&0&0000",
+            ),
+            appareil(
+                "Peripherique de controle consommateur IHM",
+                "HIDClass",
+                "HID\\VID_C0F4&PID_07C0&MI_01&COL01\\8&87386A4&0&0000",
+            ),
+            appareil(
+                "Peripherique d entree USB",
+                "HIDClass",
+                "USB\\VID_0218&PID_0210\\2027300413413333",
+            ),
+            appareil(
+                "Peripherique clavier IHM",
+                "Keyboard",
+                "HID\\VID_0218&PID_0210\\7&3C05F&0&0000",
+            ),
+            appareil(
+                "Ecran tactile IHM",
+                "HIDClass",
+                "HID\\VID_222A&PID_0001&COL01\\7&A47354B&0&0000",
+            ),
+            appareil(
+                "Moniteur Plug-and-Play generique",
+                "Monitor",
+                "DISPLAY\\MS_0000\\4&856DDBD&0&UID67568640",
+            ),
+            appareil("Port de communication (COM1)", "Ports", "ACPI\\PNP0501\\1"),
+        ]
+    }
+
+    #[test]
+    fn ne_retient_que_les_appareils_qui_tapent_des_touches() {
+        let candidats = candidats_douchette(&poste());
+        let identites: Vec<&str> = candidats
+            .iter()
+            .map(|candidat| candidat.materiel.as_str())
+            .collect();
+
+        // La dalle tactile et le moniteur portent une identite USB mais aucune
+        // interface clavier : LCOS ne saurait pas les lire.
+        assert_eq!(identites, vec!["0218:0210", "C0F4:07C0"]);
+    }
+
+    #[test]
+    fn regroupe_les_interfaces_d_un_meme_appareil() {
+        let candidats = candidats_douchette(&poste());
+
+        let douchette = &candidats[0];
+        let clavier_de_caisse = &candidats[1];
+
+        assert_eq!(douchette.materiel, "0218:0210");
+        assert_eq!(douchette.interfaces, 2);
+
+        assert_eq!(clavier_de_caisse.materiel, "C0F4:07C0");
+        assert_eq!(clavier_de_caisse.interfaces, 3);
+    }
+
+    #[test]
+    fn nomme_le_candidat_par_son_interface_clavier() {
+        let candidats = candidats_douchette(&poste());
+
+        assert!(candidats
+            .iter()
+            .all(|candidat| candidat.nom == "Peripherique clavier IHM"));
+    }
+
+    #[test]
+    fn un_poste_sans_clavier_usb_ne_propose_aucune_douchette() {
+        let interne = vec![
+            appareil("Port de communication (COM1)", "Ports", "ACPI\\PNP0501\\1"),
+            appareil(
+                "Intel(R) HD Graphics 3000",
+                "Display",
+                "PCI\\VEN_8086&DEV_0116",
+            ),
+        ];
+
+        assert!(candidats_douchette(&interne).is_empty());
+    }
+
+    #[test]
+    fn n_envoie_rien_sur_un_port_qu_on_ne_peut_pas_joindre() {
+        assert!(port_injoignable(afficheur::SONDE_ABSENT));
+        assert!(port_injoignable(afficheur::SONDE_OCCUPE));
+        assert!(port_injoignable(afficheur::SONDE_INVALIDE));
+        // Une ligne tenue par l appareil ferait attendre l ecriture sans fin.
+        assert!(port_injoignable(afficheur::SONDE_BLOQUE));
+    }
+
+    #[test]
+    fn un_port_muet_recoit_quand_meme_la_somme_d_essai() {
+        // Un cable a trois fils ne porte pas DSR : l afficheur marche sans
+        // qu aucune preuve ne soit possible. L essai doit avoir lieu.
+        assert!(!port_injoignable(afficheur::SONDE_MUET));
+        assert!(!port_injoignable(afficheur::SONDE_ALIMENTE));
+        assert!(!port_injoignable(afficheur::SONDE_REPOND));
+        assert!(!port_injoignable(afficheur::SONDE_ILLISIBLE));
     }
 }

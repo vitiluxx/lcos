@@ -1107,7 +1107,7 @@ case Envoyer la somme sur l afficheur client --> Branchement --> (Port, Vitesse)
 | `Branchement` | Voir le tableau ci-dessus |
 | `Port` | Le `COM` trouve dans l inventaire. Absent quand l afficheur passe par l imprimante |
 | `Vitesse` | `9600` dans la quasi totalite des cas. Des caracteres au hasard a l ecran : essaie les autres vitesses |
-| `Protocole` | Voie serie seulement. Commence par `Texte brut` ; si l ecran ne s efface pas entre deux clients, `CD5220` ; si l afficheur est un modele ESC/POS a port propre, `ESC/POS` |
+| `Protocole` | Voie serie seulement. Six jeux de commandes : `Texte brut`, `CD5220`, `ESC/POS`, `AEDEX`, `UTC Enhanced`, `ADM 787 / 788`. Aucun afficheur ne dit lequel il parle : essaie-les dans l ordre de la liste en regardant l ecran du client. Si les six restent muets, change la vitesse plutot que de recommencer |
 | `Largeur` | Nombre de caracteres par ligne, `20` d ordinaire, `8` au minimum |
 
 **Voie imprimante : choisis l imprimante du ticket d abord** (panneau juste au-dessus,

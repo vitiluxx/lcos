@@ -9,7 +9,9 @@
  *   - rien n est envoye tant que le gerant n a pas allume l afficheur.
  *
  * L inventaire liste ce que Windows reconnait sur la machine. Il sert a
- * trouver le port de l afficheur sans ouvrir le gestionnaire de peripheriques.
+ * trouver le port de l afficheur sans ouvrir le gestionnaire de peripheriques,
+ * et il porte deux releves que l afficheur ne donne pas : les vrais moniteurs
+ * branches, et les appareils qui pourraient etre la douchette.
  */
 (function (global) {
   "use strict";
@@ -26,11 +28,33 @@
   let dernierEnvoi = null;
   let enPanne = false;
 
+  // Ce qu un verdict de sonde vaut a l oeil : vert quand un appareil s est
+  // manifeste, rouge quand le port est hors d atteinte, gris quand rien n est
+  // prouve ni dementi.
+  const NATURES_SONDE = {
+    repond: "succes",
+    alimente: "succes",
+    muet: "neutre",
+    illisible: "neutre",
+    absent: "alerte",
+    occupe: "alerte",
+    bloque: "alerte",
+    invalide: "alerte"
+  };
+
   function badge(identifiant, texte, nature) {
     const noeud = element(identifiant);
 
     noeud.textContent = texte;
     noeud.className = "badge badge--" + nature;
+  }
+
+  function afficherSonde(texte, nature) {
+    const zone = element("afficheur_sonde");
+
+    zone.textContent = texte;
+    zone.className = "zone_verdict zone_verdict--" + nature;
+    zone.hidden = false;
   }
 
   /*
@@ -81,6 +105,11 @@
 
     element("afficheur_ligne_serie").hidden = parImprimante;
     element("afficheur_champ_protocole").hidden = parImprimante;
+
+    // Rien a sonder derriere l imprimante : il n y a pas de port, et le
+    // spouleur ne rend aucun etat.
+    element("afficheur_sonder").hidden = parImprimante;
+    element("afficheur_sonde").hidden = true;
 
     if (!parImprimante) {
       element("afficheur_voie_aide").textContent =
@@ -161,9 +190,41 @@
     }
   }
 
+  // Cherche une preuve de presence sans rien afficher : le gerant peut sonder
+  // un port avant d envoyer quoi que ce soit au client.
+  async function sonder() {
+    const bouton = element("afficheur_sonder");
+
+    bouton.disabled = true;
+    afficherSonde("Sonde du port en cours...", "neutre");
+
+    try {
+      const sonde = await global.pont.appeler("sonder_afficheur", {
+        jeton: global.acces.exiger(),
+        port: element("afficheur_port").value,
+        debit: global.format.entier(element("afficheur_debit").value, 9600),
+        protocole: element("afficheur_protocole").value
+      });
+
+      const lignes = "DSR " + (sonde.dsr ? "haut" : "bas") +
+        ", CTS " + (sonde.cts ? "haut" : "bas") +
+        ", " + sonde.octets_recus + " octet(s) recu(s)";
+
+      afficherSonde(
+        sonde.detail + " (" + lignes + ")",
+        NATURES_SONDE[sonde.verdict] || "neutre"
+      );
+    } catch (incident) {
+      afficherSonde(incident.message || String(incident), "alerte");
+      global.notifier.incident(incident);
+    } finally {
+      bouton.disabled = false;
+    }
+  }
+
   async function tester() {
     try {
-      const verdict = await global.pont.appeler("tester_afficheur", {
+      const essai = await global.pont.appeler("tester_afficheur", {
         jeton: global.acces.exiger(),
         voie: element("afficheur_voie").value,
         port: element("afficheur_port").value,
@@ -172,8 +233,20 @@
         colonnes: global.format.entier(element("afficheur_colonnes").value, 20)
       });
 
-      element("afficheur_verdict").textContent = verdict;
-      global.notifier.succes(verdict);
+      element("afficheur_verdict").textContent = essai.message;
+
+      if (essai.verdict) {
+        afficherSonde(essai.message, NATURES_SONDE[essai.verdict] || "neutre");
+      }
+
+      // Un envoi que rien ne confirme n est pas une reussite : il est annonce
+      // comme un simple envoi, et c est l oeil du gerant qui tranche.
+      if (essai.prouve) {
+        global.notifier.succes(essai.message);
+      } else {
+        global.notifier.neutre(essai.message);
+      }
+
       enPanne = false;
     } catch (incident) {
       element("afficheur_verdict").textContent = incident.message || String(incident);
@@ -231,6 +304,61 @@
         );
       }
     }, DELAI_ENVOI_MS);
+  }
+
+  /*
+   * -------------------------------- ecrans ---------------------------------
+   */
+
+  function afficherEcrans() {
+    const corps = element("ecrans_liste");
+
+    global.format.vider(corps);
+
+    if (!inventaire) {
+      corps.appendChild(global.format.ligneVide(4, "Ecrans non releves."));
+      return;
+    }
+
+    const ecrans = inventaire.ecrans || [];
+
+    if (!ecrans.length) {
+      corps.appendChild(global.format.ligneVide(4, "Aucun ecran releve."));
+      element("ecrans_resume").textContent =
+        "Windows n a rendu aucun ecran : releve impossible sur ce poste.";
+      return;
+    }
+
+    ecrans.forEach(function (ecran) {
+      const ligne = global.format.creer("tr");
+
+      ligne.appendChild(global.format.cellule("Ecran " + ecran.rang));
+
+      const role = global.format.creer("td");
+
+      role.appendChild(
+        global.format.creer(
+          "span",
+          ecran.principal ? "badge badge--succes" : "badge badge--attente",
+          ecran.principal ? "face, cote caissier" : "second ecran"
+        )
+      );
+      ligne.appendChild(role);
+
+      ligne.appendChild(global.format.cellule(ecran.largeur + " x " + ecran.hauteur));
+      ligne.appendChild(global.format.cellule(ecran.modele || "--"));
+
+      corps.appendChild(ligne);
+    });
+
+    element("ecrans_resume").textContent =
+      ecrans.length === 1
+        ? "Un seul ecran : celui du caissier. L ecran arriere, s il existe, est un afficheur" +
+          " client et passe par un port serie ou par l imprimante, pas par Windows."
+        : ecrans.length +
+          " ecrans d ordinateur branches. Attention : un afficheur client n est pas un" +
+          " ecran. Si l un de ceux-ci est tourne vers le client, c est un second moniteur," +
+          " et le panneau Afficheur client ne le pilote pas.";
   }
 
   /*
@@ -362,7 +490,14 @@
       badge("badge_inventaire", inventaire.nombre + " appareils", "succes");
       remplirFamilles();
       afficherInventaire();
+      afficherEcrans();
       remplirPorts(inventaire.ports_serie);
+
+      // La vue douchette est voisine dans le meme ecran : elle ne sait pas
+      // relever le materiel, l inventaire lui porte donc ses candidats.
+      if (global.vuePeripheriques && global.vuePeripheriques.proposerDouchettes) {
+        global.vuePeripheriques.proposerDouchettes(inventaire.douchettes || []);
+      }
     } catch (incident) {
       badge("badge_inventaire", "lecture impossible", "alerte");
       global.notifier.incident(incident);
@@ -374,6 +509,7 @@
   function initialiser() {
     element("afficheur_voie").addEventListener("change", appliquerVoie);
     element("afficheur_enregistrer").addEventListener("click", enregistrer);
+    element("afficheur_sonder").addEventListener("click", sonder);
     element("afficheur_tester").addEventListener("click", tester);
     element("afficheur_effacer").addEventListener("click", effacer);
     element("inventaire_relever").addEventListener("click", relever);
@@ -381,6 +517,7 @@
     element("inventaire_famille").addEventListener("change", afficherInventaire);
 
     afficherInventaire();
+    afficherEcrans();
   }
 
   global.vueAfficheur = {

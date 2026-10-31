@@ -39,12 +39,24 @@ const LONGUEUR_NOM_MAXIMALE: usize = 120;
 const LONGUEUR_TEXTE_MAXIMALE: usize = 20_000;
 const FICHIER_TAMPON: &str = "lcos_ticket.txt";
 
+/// Prefixes de port qui menent a du materiel. Tout le reste est un port
+/// logiciel : boite de dialogue, fichier, telecopie, ou port applicatif d une
+/// application du Store.
+const PORTS_MATERIELS: [&str; 5] = ["COM", "LPT", "USB", "IP_", "WSD-"];
+
 #[derive(Debug, Serialize)]
 pub struct Imprimante {
     pub nom: String,
     pub par_defaut: bool,
     pub hors_ligne: bool,
     pub etat: String,
+    /// Port du spouleur : `COM2:`, `LPT1:`, `USB001`, `PORTPROMPT:`...
+    pub port: String,
+    pub pilote: String,
+    /// Vrai quand le port ne mene a aucun materiel. Ces imprimantes se
+    /// declarent `prete` comme les autres : sans ce drapeau, le gerant choisit
+    /// `Microsoft Print to PDF` en croyant retenir la thermique de la caisse.
+    pub virtuelle: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -154,15 +166,57 @@ pub fn imprimer_ticket(depot: State<Depot>, texte: String) -> Resultat<String> {
     Ok(nom)
 }
 
+/// Resultat d un essai d impression. Le spouleur accepte les octets sans rien
+/// savoir de ce qui est au bout du cable : `materiel` dit seulement si le port
+/// retenu peut porter un appareil, jamais qu un ticket est sorti.
+#[derive(Debug, Serialize)]
+pub struct EssaiImpression {
+    pub imprimante: String,
+    pub port: String,
+    pub materiel: bool,
+    pub message: String,
+}
+
 #[tauri::command]
 pub fn tester_impression(
     depot: State<Depot>,
     jetons: State<RegistreJetons>,
     jeton: String,
-) -> Resultat<String> {
+) -> Resultat<EssaiImpression> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
-    imprimer_ticket(depot, page_de_test())
+    let nom = imprimer_ticket(depot, page_de_test())?;
+
+    // L enumeration est relancee apres l envoi : c est elle qui porte le port
+    // de l imprimante retenue, et le reglage ne le memorise pas.
+    let (port, materiel) = enumerer()
+        .unwrap_or_default()
+        .into_iter()
+        .find(|imprimante| imprimante.nom == nom)
+        .map(|imprimante| (imprimante.port, !imprimante.virtuelle))
+        .unwrap_or_default();
+
+    let message = if materiel {
+        format!(
+            "Page de test remise au spouleur pour {nom} sur {port}. \
+             Windows accepte les octets meme sans appareil au bout du cable : \
+             regarde le rouleau, c est lui qui tranche."
+        )
+    } else {
+        format!(
+            "Page de test remise au spouleur pour {nom}, mais son port ({}) ne mene a aucun \
+             materiel : aucun ticket ne sortira. Retiens l imprimante de la caisse, \
+             celle dont le port commence par COM, LPT ou USB.",
+            if port.is_empty() { "inconnu" } else { port.as_str() }
+        )
+    };
+
+    Ok(EssaiImpression {
+        imprimante: nom,
+        port,
+        materiel,
+        message,
+    })
 }
 
 /// Octets bruts vers une imprimante du spouleur, partage avec l afficheur
@@ -235,12 +289,19 @@ fn memoriser_detection(
     parametres::ecrire(connexion, CLE_NOM, &defaut.nom)
 }
 
-fn enumerer() -> Resultat<Vec<Imprimante>> {
-    let consigne = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; \
-         Get-CimInstance -ClassName Win32_Printer | ForEach-Object { \
-         \"$($_.Name)`t$($_.Default)`t$($_.WorkOffline)`t$($_.PrinterStatus)\" }";
+/// Le port et le pilote sont releves en plus de l etat : l etat du spouleur ne
+/// distingue pas une thermique branchee d une imprimante virtuelle, les deux se
+/// declarent `prete`. Le port, lui, le dit.
+///
+/// Colonnes assemblees par `-join [char]9`, sans guillemet double : la consigne
+/// traverse la ligne de commande de `powershell.exe`, qui les mange.
+const CONSIGNE_SPOULEUR: &str = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; \
+     Get-CimInstance -ClassName Win32_Printer | ForEach-Object { \
+     ($_.Name,$_.Default,$_.WorkOffline,$_.PrinterStatus,$_.PortName,$_.DriverName) \
+     -join [char]9 }";
 
-    let sortie = lancer(&["-NoProfile", "-NonInteractive", "-Command", consigne])?;
+fn enumerer() -> Resultat<Vec<Imprimante>> {
+    let sortie = lancer(&["-NoProfile", "-NonInteractive", "-Command", CONSIGNE_SPOULEUR])?;
 
     if !sortie.status.success() {
         let detail = String::from_utf8_lossy(&sortie.stderr);
@@ -264,12 +325,32 @@ fn analyser_ligne(ligne: &str) -> Option<Imprimante> {
         return None;
     }
 
+    let port = champs.get(4).unwrap_or(&"").trim().to_string();
+
     Some(Imprimante {
         nom: champs[0].trim().to_string(),
         par_defaut: champs[1].eq_ignore_ascii_case("true"),
         hors_ligne: champs[2].eq_ignore_ascii_case("true"),
         etat: libelle_etat(champs[3].trim()),
+        pilote: champs.get(5).unwrap_or(&"").trim().to_string(),
+        virtuelle: !mene_a_du_materiel(&port),
+        port,
     })
+}
+
+/// Un port qui mene a du materiel : serie, parallele, USB ou reseau.
+///
+/// Rien dans le spouleur ne dit si un appareil est reellement au bout du
+/// cable — `PrinterStatus` vaut `prete` sur un port vide comme sur un port
+/// equipe, verifie sur sept ports dont quatre sans aucun materiel. Le nom du
+/// port est donc la seule information exploitable : il ne prouve pas la
+/// presence, mais il prouve l absence.
+fn mene_a_du_materiel(port: &str) -> bool {
+    let majuscules = port.trim().to_ascii_uppercase();
+
+    PORTS_MATERIELS
+        .iter()
+        .any(|prefixe| majuscules.starts_with(prefixe))
 }
 
 /// Codes PrinterStatus de Win32_Printer, traduits pour l ecran du gerant.
@@ -530,12 +611,68 @@ mod tests {
 
     #[test]
     fn analyse_une_ligne_du_spouleur() {
-        let imprimante = analyser_ligne("POS58\tTrue\tFalse\t3").unwrap();
+        let imprimante =
+            analyser_ligne("POS58\tTrue\tFalse\t3\tCOM2:\tPOS58 Driver").unwrap();
 
         assert_eq!(imprimante.nom, "POS58");
         assert!(imprimante.par_defaut);
         assert!(!imprimante.hors_ligne);
         assert_eq!(imprimante.etat, "prete");
+        assert_eq!(imprimante.port, "COM2:");
+        assert_eq!(imprimante.pilote, "POS58 Driver");
+        assert!(!imprimante.virtuelle);
+    }
+
+    #[test]
+    fn reconnait_une_imprimante_virtuelle_malgre_son_etat_pret() {
+        // `PrinterStatus` vaut 3 = prete sur les deux lignes : seul le port
+        // les distingue.
+        let pdf = analyser_ligne(
+            "Microsoft Print to PDF\tFalse\tFalse\t3\tPORTPROMPT:\tMicrosoft Print To PDF",
+        )
+        .unwrap();
+
+        assert_eq!(pdf.etat, "prete");
+        assert!(pdf.virtuelle);
+    }
+
+    #[test]
+    fn lit_une_ligne_de_l_ancien_format_sans_port() {
+        // Un releve sans les deux colonnes ajoutees reste exploitable, mais
+        // sans port connu l imprimante est tenue pour virtuelle : mieux vaut
+        // la signaler a tort que laisser croire a un ticket qui ne sort pas.
+        let imprimante = analyser_ligne("POS58\tTrue\tFalse\t3").unwrap();
+
+        assert_eq!(imprimante.port, "");
+        assert!(imprimante.virtuelle);
+    }
+
+    #[test]
+    fn distingue_les_ports_materiels_des_ports_logiciels() {
+        for port in ["COM1:", "com2:", "LPT1:", "USB001", "IP_192.168.1.50", "WSD-abc"] {
+            assert!(mene_a_du_materiel(port), "port materiel : {port}");
+        }
+
+        for port in [
+            "PORTPROMPT:",
+            "SHRFAX:",
+            "FILE:",
+            "nul:",
+            "Microsoft.Office.OneNote_16001_x64__8wekyb3d8bbwe_microsoft.onenoteim",
+            "",
+            "   ",
+        ] {
+            assert!(!mene_a_du_materiel(port), "port logiciel : {port}");
+        }
+    }
+
+    #[test]
+    fn la_consigne_du_spouleur_ne_porte_aucun_guillemet_double() {
+        // Meme lecon que la sonde de l afficheur : `powershell.exe` mange les
+        // guillemets doubles de sa ligne de commande.
+        assert!(!CONSIGNE_SPOULEUR.contains('"'));
+        assert!(CONSIGNE_SPOULEUR.contains("-join [char]9"));
+        assert!(CONSIGNE_SPOULEUR.contains("$_.PortName"));
     }
 
     #[test]

@@ -27,16 +27,28 @@
 
     liste.disabled = false;
 
+    // Le port est montre avant l etat, parce que l etat ne distingue rien :
+    // une imprimante virtuelle se declare `prete` exactement comme la
+    // thermique de la caisse. Seul le port dit ou vont les octets.
     disponibles.forEach(function (imprimante) {
-      const suffixe = imprimante.hors_ligne ? " (hors ligne)" : " (" + imprimante.etat + ")";
+      const port = imprimante.port || "port inconnu";
+      const suffixe = imprimante.virtuelle
+        ? " - virtuelle, " + port + " : aucun ticket n en sortira"
+        : " - " + port + (imprimante.hors_ligne ? ", hors ligne" : ", " + imprimante.etat);
 
       liste.appendChild(new Option(imprimante.nom + suffixe, imprimante.nom));
     });
 
     liste.value = retenue;
 
+    // Une imprimante materielle est preferee a une virtuelle quand rien n est
+    // encore retenu : le premier de la liste du spouleur est souvent `Fax`.
     if (!liste.value) {
-      liste.selectedIndex = 0;
+      const materielle = disponibles.find(function (imprimante) {
+        return !imprimante.virtuelle;
+      });
+
+      liste.value = materielle ? materielle.nom : disponibles[0].nom;
     }
   }
 
@@ -116,11 +128,19 @@
 
   async function tester() {
     try {
-      const imprimante = await global.pont.appeler("tester_impression", {
+      const essai = await global.pont.appeler("tester_impression", {
         jeton: global.acces.exiger()
       });
 
-      global.notifier.succes("Page de test envoyee a " + imprimante + ".");
+      element("imprimante_etat").textContent = essai.message;
+
+      // Jamais de vert : le spouleur accepte les octets sans savoir ce qui est
+      // au bout du cable. Un port logiciel, lui, est une erreur certaine.
+      if (essai.materiel) {
+        global.notifier.neutre(essai.message);
+      } else {
+        global.notifier.alerte(essai.message);
+      }
     } catch (incident) {
       global.notifier.incident(incident);
     }
