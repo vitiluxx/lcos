@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.2
+# Guide d utilisation LCOS 1.9.3
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -17,7 +17,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.2`.
+barres**, en haut a droite, juste a cote de `version 1.9.3`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -66,7 +66,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.2_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.3_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -593,8 +593,8 @@ touche Entree --> taper la somme recue --> touche Entree
 
 1. Le champ `Prix de l article` apparait au-dessus de la somme recue, le curseur s y
    place tout seul.
-2. Tape le prix --> touche `+` (ou bouton `+ Ajouter l article`). L article entre dans
-   le panier, le champ se vide pour le suivant.
+2. Tape le prix --> touche `+` (ou bouton `+ Ajouter l article`, dans le pave, a droite
+   des zeros). L article entre dans le panier, le champ se vide pour le suivant.
 3. Le libelle au-dessus du gros chiffre affiche `Sommation` : le cumul monte a chaque
    `+`.
 4. Touche `Entree` : la sommation est fermee, le libelle repasse a `Total a payer`, le
@@ -646,7 +646,8 @@ rouge, le bouton `Encaisser` reste grise et la vente ne part pas.
 - `*` : mode manuel : multiplie le prix tape. Mode scan : multiplie la derniere ligne du
   panier. Bouton equivalent : touche `x` du pave
 - `+` : ajoute l article au panier (mode manuel), ou valide une quantite. Bouton
-  equivalent : `+ Ajouter l article`
+  equivalent : `+ Ajouter l article`, dans le pave a droite des zeros, visible en mode
+  manuel seulement
 - `Retour arriere` : efface le dernier chiffre. Bouton equivalent : touche fleche du
   pave
 - `Entree` : ferme la sommation, puis valide la vente. Bouton equivalent :
@@ -678,6 +679,7 @@ articles un samedi midi.
 Trois touches qui font gagner du temps :
 
 - `Montant exact` : remplit la somme recue avec le total exact. Client qui paie juste.
+  Le bouton est sous les deux boutons de mode, en pleine largeur.
 - `00` : ajoute deux zeros d un coup.
 - `C` : efface la somme recue sans toucher au panier.
 
@@ -931,8 +933,8 @@ tient sur une seule ligne, la largeur du ticket est correcte. Sinon :
 
 **Emplacement** : `LCOS --> Parametrage --> Peripheriques --> Afficheur client`
 
-C est le petit ecran tourne vers le client, a l arriere de la caisse. Il n affiche qu une
-somme : le **total a payer**, mis a jour en direct a chaque article.
+C est le petit ecran tourne vers le client, a l arriere de la caisse. Il n affiche
+qu une somme a la fois : celle que le caissier a sous les yeux, mise a jour en direct.
 
 **Ce n est pas un second ecran d ordinateur.** Il ne sait rendre que des caracteres, il
 n a pas de carte graphique derriere lui, et Windows ne le montre donc **jamais** comme un
@@ -942,6 +944,9 @@ rien : ce n est pas la qu il se configure.
 ### Ce que le client voit, et quand
 
 - **Chaque article scanne, ajoute ou retire** : le total a payer, mis a jour aussitot
+- **Chaque chiffre de la somme recue du client** : ce montant en train de se taper, pour
+  que le client verifie qu on a bien lu son billet
+- **Somme recue effacee** : retour au total a payer
 - **Apres l encaissement, s il y a de la monnaie a rendre** : **le rendu, tenu environ 8
   secondes**, puis retour a zero
 - **Apres l encaissement, compte juste** : le total encaisse reste affiche jusqu a la
@@ -952,7 +957,10 @@ rien : ce n est pas la qu il se configure.
 ### Ce qu il montre, et ce qu il ne montre pas
 
 - Le total a payer, cale a droite, a chaque changement du panier.
-- Jamais la somme recue : c est le montant **a payer** que le client verifie.
+- La somme recue du client des que le caissier la tape, chiffre par chiffre, dans les
+  deux modes.
+- Jamais le prix d un article en cours de frappe en mode manuel : c est la sommation qui
+  reste devant le client tant que l article n est pas ajoute.
 - Rien du tout si la case est decochee : LCOS n ouvre meme pas le port.
 
 *Si l afficheur ne repond plus en pleine journee :* la vente continue. LCOS signale une

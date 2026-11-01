@@ -200,11 +200,16 @@
                 <button class="pave__touche" data-touche="2" type="button">2</button>
                 <button class="pave__touche" data-touche="3" type="button">3</button>
                 <button class="pave__touche" data-touche="multiplier" type="button">x</button>
-                <button class="pave__touche pave__touche--large" data-touche="exact" type="button">
-                  Montant exact
-                </button>
                 <button class="pave__touche" data-touche="0" type="button">0</button>
                 <button class="pave__touche" data-touche="00" type="button">00</button>
+                <button
+                  class="pave__touche pave__touche--large"
+                  id="caisse_ajouter_manuel"
+                  type="button"
+                  hidden
+                >
+                  + Ajouter l article
+                </button>
                 <button class="pave__touche" data-touche="," type="button">,</button>
               </div>
 
@@ -222,8 +227,8 @@
                 </button>
               </div>
 
-              <button class="bouton" id="caisse_ajouter_manuel" type="button" hidden>
-                + Ajouter l article
+              <button class="bouton" id="caisse_exact" data-touche="exact" type="button">
+                Montant exact
               </button>
 
               <div class="paiement__pied">

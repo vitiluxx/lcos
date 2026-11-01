@@ -16,6 +16,7 @@
  */
 use std::io::Write;
 use std::process::Command;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -506,7 +507,7 @@ pub fn enregistrer_reglages_afficheur(
     };
 
     if par_le_port {
-        regler_port(&port_retenu, debit_retenu)?;
+        poser_vitesse(&port_retenu, debit_retenu)?;
     }
 
     if actif && voie_retenue == afficheur::VOIE_IMPRIMANTE {
@@ -586,7 +587,71 @@ fn envoyer(reglages: &ReglagesAfficheur, texte: &str) -> Resultat<()> {
 
     let octets = afficheur::trame(texte, &reglages.protocole, reglages.colonnes);
 
-    ecrire_sur_port(&reglages.port, &octets)
+    // La consigne `mode` de Windows ne survit pas a un redemarrage du poste :
+    // au demarrage suivant, le port est revenu a la vitesse par defaut et
+    // l afficheur ne comprend plus rien de ce qu on lui envoie. Personne
+    // n ouvre le parametrage apres chaque demarrage, donc la vitesse est posee
+    // ici, une fois par lancement et par reglage.
+    //
+    // Une consigne refusee n arrete pas l envoi : mieux vaut un afficheur
+    // peut-etre brouille qu un afficheur muet, et le prochain envoi retentera.
+    let _ = assurer_vitesse(&reglages.port, reglages.debit);
+
+    let envoi = ecrire_sur_port(&reglages.port, &octets);
+
+    // Port tombe : la vitesse sera reposee au prochain essai, le temps que
+    // l appareil revienne.
+    if envoi.is_err() {
+        oublier_vitesse();
+    }
+
+    envoi
+}
+
+/// Port et vitesse deja poses depuis le lancement de LCOS.
+static VITESSE_POSEE: Mutex<Option<(String, i64)>> = Mutex::new(None);
+
+/// Vrai quand la consigne `mode` doit etre relancee : rien de pose encore, ou
+/// un autre port, ou une autre vitesse.
+fn doit_poser_vitesse(posee: Option<&(String, i64)>, port: &str, debit: i64) -> bool {
+    match posee {
+        Some((pose, vitesse)) => pose != port || *vitesse != debit,
+        None => true,
+    }
+}
+
+/// Pose la vitesse si elle ne l est pas deja. Un seul processus `mode` par
+/// lancement : la frappe du caissier n en declenche aucun.
+fn assurer_vitesse(port: &str, debit: i64) -> Resultat<()> {
+    if !doit_poser_vitesse(memoire_vitesse().as_ref(), port, debit) {
+        return Ok(());
+    }
+
+    poser_vitesse(port, debit)
+}
+
+/// Pose la vitesse sans condition, et ne la retient qu en cas de succes.
+fn poser_vitesse(port: &str, debit: i64) -> Resultat<()> {
+    regler_port(port, debit)?;
+    *verrou_vitesse() = Some((port.to_string(), debit));
+
+    Ok(())
+}
+
+fn oublier_vitesse() {
+    *verrou_vitesse() = None;
+}
+
+fn memoire_vitesse() -> Option<(String, i64)> {
+    verrou_vitesse().clone()
+}
+
+// Un verrou empoisonne n est pas une raison d arreter une vente : la valeur
+// gardee n est qu une memoire de confort.
+fn verrou_vitesse() -> std::sync::MutexGuard<'static, Option<(String, i64)>> {
+    VITESSE_POSEE
+        .lock()
+        .unwrap_or_else(|empoisonne| empoisonne.into_inner())
 }
 
 fn exiger_imprimante(connexion: &rusqlite::Connection) -> Resultat<String> {
@@ -707,7 +772,7 @@ pub fn tester_afficheur(
         )));
     }
 
-    regler_port(&port_retenu, debit_retenu)?;
+    poser_vitesse(&port_retenu, debit_retenu)?;
 
     let octets = afficheur::trame("123,45", protocole_retenu, colonnes_retenues);
 
@@ -790,9 +855,9 @@ fn ecrire_sur_port(port: &str, octets: &[u8]) -> Resultat<()> {
     Ok(())
 }
 
-/// Vitesse du port, posee par la consigne `mode` de Windows. Appelee a
-/// l enregistrement et a l essai, jamais a chaque somme : un processus par
-/// frappe du caissier serait du gaspillage.
+/// Vitesse du port, posee par la consigne `mode` de Windows. Passe toujours
+/// par `assurer_vitesse` ou `poser_vitesse` : un processus `mode` par frappe du
+/// caissier serait du gaspillage.
 fn regler_port(port: &str, debit: i64) -> Resultat<()> {
     let consigne = afficheur::consigne_mode(port, debit);
     let mut commande = Command::new("cmd");
@@ -1047,5 +1112,21 @@ mod tests {
         assert!(!port_injoignable(afficheur::SONDE_ALIMENTE));
         assert!(!port_injoignable(afficheur::SONDE_REPOND));
         assert!(!port_injoignable(afficheur::SONDE_ILLISIBLE));
+    }
+
+    #[test]
+    fn pose_la_vitesse_une_fois_par_port_et_par_debit() {
+        // Rien de pose au lancement : la consigne doit partir, sinon le port
+        // garde la vitesse par defaut de Windows apres un redemarrage.
+        assert!(doit_poser_vitesse(None, "COM2", 2400));
+
+        let posee = ("COM2".to_string(), 2400);
+
+        // Deja pose : la frappe du caissier ne relance aucun processus.
+        assert!(!doit_poser_vitesse(Some(&posee), "COM2", 2400));
+
+        // Le gerant a change de port ou de vitesse : la consigne repart.
+        assert!(doit_poser_vitesse(Some(&posee), "COM3", 2400));
+        assert!(doit_poser_vitesse(Some(&posee), "COM2", 9600));
     }
 }

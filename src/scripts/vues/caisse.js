@@ -336,10 +336,12 @@
     element("caisse_encaisser").disabled =
       encaissementEnCours || panier.length === 0 || recu < total;
 
-    // L ecran du client suit le total, jamais la somme recue : c est le
-    // montant a payer que le client verifie. Ce qu on lui rend lui est montre
-    // apres l encaissement, par poserRendu.
-    global.vueAfficheur.poserSomme(total);
+    // L ecran du client montre exactement le nombre que le caissier a sous les
+    // yeux, dans les deux modes : la sommation ou le total a payer tant que la
+    // somme recue n est pas entamee, puis cette somme recue chiffre par
+    // chiffre, pour que le client verifie ce qu on a tape de son billet. Ce
+    // qu on lui rend prend la suite apres l encaissement, par poserRendu.
+    global.vueAfficheur.poserSomme(montantSaisi === "" ? total : recu);
   }
 
   function afficherPanier() {

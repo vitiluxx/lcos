@@ -2,8 +2,9 @@
  * Afficheur client et inventaire du materiel.
  *
  * L afficheur client est le petit ecran tourne vers le client. Il ne porte
- * qu une somme, poussee a chaque changement du total. Deux regles tiennent
- * tout ce fichier :
+ * qu une somme a la fois, celle que le caissier a sous les yeux : le total a
+ * payer, puis la somme recue pendant qu elle se tape, puis le rendu. Deux
+ * regles tiennent tout ce fichier :
  *   - une panne de l afficheur n arrete jamais une vente : l envoi echoue en
  *     silence, une seule fois signale, et la caisse continue ;
  *   - rien n est envoye tant que le gerant n a pas allume l afficheur.
@@ -22,6 +23,12 @@
   // pousse que la derniere somme d une rafale de frappes.
   const DELAI_ENVOI_MS = 120;
 
+  // Plancher entre deux envois reellement partis. Chaque envoi ouvre et referme
+  // le port : cent ouvertures en seize secondes ont deja eteint l afficheur de
+  // la P70L (recherches/journal_afficheur.md). Trois envois par seconde au plus
+  // se lisent encore comme du direct, et laissent le port tranquille.
+  const INTERVALLE_MINIMAL_MS = 320;
+
   // Combien de temps le rendu reste devant le client apres l encaissement.
   // Sans ce delai il disparaitrait aussitot : vider le panier remet le total
   // a zero, et la caisse redemande donc zero dans la meme foulee.
@@ -31,6 +38,7 @@
   let inventaire = null;
   let minuterie = null;
   let dernierEnvoi = null;
+  let instantDernierEnvoi = 0;
   let enPanne = false;
 
   // Instant jusqu auquel le rendu garde l ecran, et la remise a zero mise de
@@ -287,8 +295,16 @@
       clearTimeout(minuterie);
     }
 
+    // Le calme de fin de rafale, jamais moins que le plancher entre deux
+    // ouvertures du port.
+    const attente = Math.max(
+      DELAI_ENVOI_MS,
+      instantDernierEnvoi + INTERVALLE_MINIMAL_MS - Date.now()
+    );
+
     minuterie = setTimeout(async function () {
       minuterie = null;
+      instantDernierEnvoi = Date.now();
 
       try {
         await global.pont.appeler("afficher_somme_client", {
@@ -305,7 +321,7 @@
           "Afficheur client muet : " + (incident.message || String(incident))
         );
       }
-    }, DELAI_ENVOI_MS);
+    }, attente);
   }
 
   // Rend la main au total courant, rendu lu ou vente suivante commencee.
@@ -330,9 +346,10 @@
     }
   }
 
-  // Appelee par la caisse a chaque changement du total, donc a chaque article
-  // scanne, ajoute a la main ou retire. Volontairement muette : le caissier
-  // encaisse, il n a pas a lire des messages d afficheur.
+  // Appelee par la caisse a chaque changement du nombre affiche devant le
+  // caissier : chaque article scanne, ajoute a la main ou retire, et chaque
+  // chiffre de la somme recue. Volontairement muette : le caissier encaisse,
+  // il n a pas a lire des messages d afficheur.
   function poserSomme(centimes) {
     if (!reglages || !reglages.actif || enPanne) {
       return;

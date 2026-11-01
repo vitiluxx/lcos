@@ -1,4 +1,4 @@
-# Guide editeur LCOS 1.9.2
+# Guide editeur LCOS 1.9.3
 
 Reserve a l editeur et a l installateur : emission des licences, reglage de
 l afficheur client, inventaire du materiel. Le guide du commercant est
@@ -230,6 +230,12 @@ refuse d allumer l afficheur, parce qu il ne saurait pas par ou envoyer les octe
 Le bouton `Afficher 123,45 pour voir` envoie une somme d essai sans rien enregistrer :
 regarde l ecran arriere pendant que tu cliques. `Effacer l ecran` le rend a blanc.
 
+**La vitesse du port est reposee par LCOS a chaque lancement**, avant le premier envoi.
+Windows ne la garde pas d un demarrage a l autre : jusqu a la 1.9.2, la caisse redemarree
+parlait a l afficheur a la vitesse par defaut du port, et l ecran restait muet pendant
+les ventes alors que le bouton d essai, lui, le reveillait. Rien a resaisir apres un
+demarrage.
+
 #### Reglages etablis sur la caisse P70L
 
 Mesures sur le materiel, trente essais consignes dans
@@ -329,6 +335,10 @@ sous la liste.
 - **L afficheur client montre des caracteres au hasard**
   - Cause : mauvaise vitesse
   - Action : essaie une autre vitesse, 9600 d abord
+- **L ecran repond au bouton d essai mais reste muet pendant les ventes**
+  - Cause : vitesse du port perdue au redemarrage du poste, jusqu a la 1.9.2
+  - Action : installe la 1.9.3 ou plus recent ; en attendant, un passage par
+    `Enregistrer` ou `Afficher 123,45 pour voir` la repose pour la session
 - **`Materiel detecte` repond `lecture impossible`**
   - Cause : le service materiel de Windows etait occupe
   - Action : reappuie sur `Relever le materiel` : LCOS fait deja un second essai tout
