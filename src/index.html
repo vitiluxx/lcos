@@ -213,6 +213,27 @@
                 <button class="pave__touche" data-touche="," type="button">,</button>
               </div>
 
+              <!--
+                Un seul bouton pour les deux gestes de la vente : son libelle dit
+                ce que le prochain clic fait. Premier clic, le montant exact se
+                pose dans la somme recue ; second clic, la vente part.
+              -->
+              <button class="bouton bouton--principal" id="caisse_encaisser" type="button">
+                Montant exact
+              </button>
+
+              <div class="paiement__pied">
+                <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
+                <span class="paiement__indice" id="caisse_indice">
+                  Scanne les articles puis Entree : le total se pose dans la somme recue.
+                </span>
+              </div>
+
+              <button class="bouton bouton--danger" id="caisse_annuler" type="button">
+                Annuler la vente
+              </button>
+
+              <!-- Le choix du mode se fait une fois par journee : il ferme la colonne. -->
               <div class="paiement__modes" role="group" aria-label="Mode de saisie">
                 <button
                   class="bouton_mode bouton_mode--actif"
@@ -226,24 +247,6 @@
                   Mode manuel
                 </button>
               </div>
-
-              <button class="bouton" id="caisse_exact" data-touche="exact" type="button">
-                Montant exact
-              </button>
-
-              <div class="paiement__pied">
-                <span class="badge badge--neutre" id="caisse_etat_ticket">ticket : --</span>
-                <span class="paiement__indice" id="caisse_indice">
-                  Scanne les articles puis Entree : le total se pose dans la somme recue.
-                </span>
-              </div>
-
-              <button class="bouton bouton--principal" id="caisse_encaisser" type="button">
-                Encaisser (Entree)
-              </button>
-              <button class="bouton bouton--danger" id="caisse_annuler" type="button">
-                Annuler la vente
-              </button>
             </div>
 
             <div class="panneau" id="caisse_ticket_panneau" hidden>

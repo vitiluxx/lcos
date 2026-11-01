@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.3
+# Guide d utilisation LCOS 1.9.4
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -17,7 +17,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.3`.
+barres**, en haut a droite, juste a cote de `version 1.9.4`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -66,7 +66,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.3_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.4_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -519,7 +519,8 @@ sont rattachees au caissier de la session, c est ce qui permet de lire ses totau
 
 ### 5.2 Choisir le mode de saisie
 
-**Emplacement** : `LCOS --> Caisse --> sous la calculatrice --> boutons [Mode scan] [Mode manuel]`
+**Emplacement** : `LCOS --> Caisse --> tout en bas de la colonne de droite, sous
+Annuler la vente --> boutons [Mode scan] [Mode manuel]`
 
 - `Mode scan` : par defaut. Articles etiquetes. La calculatrice saisit la somme recue du
   client, deja posee au total par la touche `Entree`. La touche `*` multiplie la
@@ -557,7 +558,8 @@ scanner les articles --> touche Entree --> touche Entree
 ne coute plus une seule frappe de chiffre, et la seconde `Entree` reste la validation
 qui empeche d encaisser une vente a moitie saisie.
 
-Le bouton `Compte juste` du pave pose la meme somme a la souris ou au doigt.
+Au doigt, **un seul bouton fait les deux `Entree`** : le grand bouton sous le pave.
+Son libelle dit ce que le prochain appui fera, et il change tout seul.
 
 Le ticket s affiche dans la colonne de droite --> bouton `Imprimer` si besoin.
 
@@ -650,11 +652,31 @@ rouge, le bouton `Encaisser` reste grise et la vente ne part pas.
   manuel seulement
 - `Retour arriere` : efface le dernier chiffre. Bouton equivalent : touche fleche du
   pave
-- `Entree` : ferme la sommation, puis valide la vente. Bouton equivalent :
-  `Encaisser (Entree)`
+- `Entree` : ferme la sommation, puis valide la vente. Bouton equivalent : le grand
+  bouton sous le pave, qui porte le geste suivant (voir juste en dessous)
 - `Echap` : **Defait le dernier geste**, un a la fois. Bouton equivalent : aucun
 
 Aucune autre touche n est prise en compte dans l ecran Caisse.
+
+#### Le grand bouton sous le pave
+
+Un seul bouton porte toute la vente au doigt. **Son libelle dit ce que le prochain appui
+fera**, et il change tout seul :
+
+- `Totaliser` : mode manuel, pendant la saisie des prix. Ferme la sommation, exactement
+  comme la premiere `Entree`.
+- `Montant exact` : pose le total dans `Somme recue du client`. C est l etat du bouton
+  des que le panier porte un article et que rien n est tape.
+- `Encaisser (Entree)` : la vente part. C est l etat du bouton des qu une somme recue
+  est posee ou tapee.
+- `Valider la quantite` : pendant une multiplication en mode scan.
+
+Il est grise quand l appui ne menerait a rien : panier vide, ou somme recue inferieure
+au total.
+
+*Pourquoi un seul bouton :* au doigt, deux boutons voisins pour deux gestes qui se
+suivent toujours dans le meme ordre font une erreur de plus a commettre. Le bouton et la
+touche `Entree` passent par le meme code : ils ne peuvent pas divergir.
 
 #### Ce que defait la touche Echap
 
@@ -676,10 +698,8 @@ une vente **deja encaissee** : chapitre 5.8.
 *Pourquoi :* une frappe de trop sur `Echap` ne doit pas couter un panier de vingt
 articles un samedi midi.
 
-Trois touches qui font gagner du temps :
+Deux touches du pave qui font gagner du temps :
 
-- `Montant exact` : remplit la somme recue avec le total exact. Client qui paie juste.
-  Le bouton est sous les deux boutons de mode, en pleine largeur.
 - `00` : ajoute deux zeros d un coup.
 - `C` : efface la somme recue sans toucher au panier.
 
@@ -981,7 +1001,7 @@ fois a l installation : voir `recherches/guide_editeur_lcos.md`, chapitre 2.
   - Cause : produit absent ou code different
   - Action : `LCOS --> Parametrage --> Produits` --> cree le produit en scannant l
     etiquette dans `Code-barres`
-- **`Encaisser` reste grise**
+- **Le grand bouton sous le pave reste grise**
   - Cause : panier vide ou somme recue inferieure au total
   - Action : ajoute un article, ou complete la somme recue
 - **`code incorrect` au deverrouillage**

@@ -80,6 +80,7 @@
     quantiteSaisie = "";
 
     afficherQuantite();
+    afficherActionPrincipale();
     appliquerIndice();
   }
 
@@ -92,6 +93,7 @@
     rangMultiplie = -1;
 
     afficherQuantite();
+    afficherActionPrincipale();
     appliquerIndice();
   }
 
@@ -286,6 +288,83 @@
       (facteurSaisi === "" ? " (tape la quantite)" : "");
   }
 
+  // Un seul bouton porte les deux gestes de la vente, dans l ordre ou le
+  // caissier les fait : poser le montant exact, puis encaisser. C est la meme
+  // suite que la touche Entree, et le meme code : le pave tactile et le clavier
+  // ne doivent pas pouvoir divergir.
+  function actionPrincipale() {
+    if (enMultiplicationScan()) {
+      validerMultiplicationScan();
+      return;
+    }
+
+    if (enSaisieDePrix()) {
+      totaliser();
+      return;
+    }
+
+    // Somme recue encore vide : le clic la remplit du total exact au lieu
+    // d encaisser une vente que le noyau refuserait.
+    if (montantSaisi === "") {
+      if (!panier.length) {
+        return;
+      }
+
+      // Le curseur n entre dans le champ qu en mode manuel : en mode scan, la
+      // douchette taperait dedans.
+      poserTotalRecu(mode === "manuel");
+      return;
+    }
+
+    encaisser();
+  }
+
+  // Ce que le prochain clic fera. Le libelle est la seule chose qui dit au
+  // caissier ou il en est.
+  function libelleAction() {
+    if (enMultiplicationScan()) {
+      return "Valider la quantite";
+    }
+
+    if (enSaisieDePrix()) {
+      return "Totaliser";
+    }
+
+    if (panier.length && montantSaisi === "") {
+      return "Montant exact";
+    }
+
+    return "Encaisser (Entree)";
+  }
+
+  // Pose le libelle et l etat du bouton unique. Appelee partout ou l etat de la
+  // vente change, y compris a l ouverture d une multiplication, ou les totaux
+  // ne bougent pas mais le geste suivant, si.
+  function afficherActionPrincipale() {
+    const action = element("caisse_encaisser");
+
+    action.textContent = libelleAction();
+    action.disabled = encaissementEnCours || !actionPossible();
+  }
+
+  // Grise des que le clic ne menerait a rien : panier vide, ou somme recue
+  // insuffisante, comme avant la fusion des deux boutons.
+  function actionPossible() {
+    if (enMultiplicationScan()) {
+      return true;
+    }
+
+    if (enSaisieDePrix()) {
+      return panier.length > 0 || prixSaisi !== "";
+    }
+
+    if (!panier.length) {
+      return false;
+    }
+
+    return montantSaisi === "" || recuCentimes() >= totalCentimes();
+  }
+
   function etatPaiement(total, recu) {
     if (!panier.length || montantSaisi === "") {
       return "neutre";
@@ -333,8 +412,7 @@
       element("caisse_rendu").textContent = "";
     }
 
-    element("caisse_encaisser").disabled =
-      encaissementEnCours || panier.length === 0 || recu < total;
+    afficherActionPrincipale();
 
     // L ecran du client montre exactement le nombre que le caissier a sous les
     // yeux, dans les deux modes : la sommation ou le total a payer tant que la
@@ -693,18 +771,6 @@
     champ.select();
   }
 
-  // Mode scan : la premiere Entree pose le total, la seconde encaisse. Une
-  // somme deja tapee n est jamais ecrasee, la touche encaisse directement.
-  function preremplirMontant() {
-    if (mode !== "scan" || !panier.length || montantSaisi !== "") {
-      return false;
-    }
-
-    poserTotalRecu(false);
-
-    return true;
-  }
-
   // Le total pose par la caisse suit le panier : en mode scan, un article lu
   // apres coup changerait le total sans changer la somme recue.
   function rafraichirMontantPrerempli() {
@@ -1025,13 +1091,7 @@
     if (touche === "Enter") {
       evenement.preventDefault();
 
-      if (enMultiplicationScan()) {
-        validerMultiplicationScan();
-      } else if (enSaisieDePrix()) {
-        totaliser();
-      } else if (!preremplirMontant()) {
-        encaisser();
-      }
+      actionPrincipale();
 
       return;
     }
@@ -1254,10 +1314,7 @@
 
       if (evenement.key === "Enter") {
         evenement.preventDefault();
-
-        if (!preremplirMontant()) {
-          encaisser();
-        }
+        actionPrincipale();
       }
     });
   }
@@ -1266,7 +1323,7 @@
     element("caisse_etat_ticket").addEventListener("click", basculerTicket);
     element("caisse_recherche").addEventListener("input", afficherGrille);
     element("caisse_filtre_rayon").addEventListener("change", afficherGrille);
-    element("caisse_encaisser").addEventListener("click", encaisser);
+    element("caisse_encaisser").addEventListener("click", actionPrincipale);
     element("caisse_ajouter_manuel").addEventListener("click", ajouterArticleLibre);
     element("caisse_annuler").addEventListener("click", function () {
       viderPanier();
@@ -1300,12 +1357,6 @@
             validerMultiplicationScan();
           } else {
             ouvrirMultiplicationScan();
-          }
-        } else if (valeur === "exact") {
-          if (enSaisieDePrix()) {
-            totaliser();
-          } else {
-            montantExact();
           }
         } else {
           ajouterAuTampon(valeur);
