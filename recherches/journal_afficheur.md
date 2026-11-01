@@ -56,6 +56,31 @@ billet plus gros que le total. Le rendu doit s'afficher et **tenir environ 8
 secondes** avant que l'écran revienne à zéro. Si ce délai ne convient pas,
 c'est `DUREE_RENDU_MS` en haut de `afficheur.js`.
 
+### Ajustements ultérieurs, et pourquoi ils comptent
+
+| Ajustement | Fichier | Ce qu'il évite |
+|---|---|---|
+| `assurer_vitesse()` appelé dans `envoyer()`, avec mémoire par couple port/débit (`VITESSE_POSEE`) | `peripheriques.rs` | La consigne `mode` ne survit pas à un redémarrage du poste. Sans cet appel, le port repartait à la vitesse par défaut de Windows et l'afficheur ne comprenait plus rien, puisque personne n'ouvre le paramétrage après chaque démarrage. Un seul processus `mode` par lancement, pas un par frappe |
+| `oublier_vitesse()` si l'écriture échoue | `peripheriques.rs` | La vitesse est reposée au retour de l'appareil, au lieu d'être crue acquise |
+| `INTERVALLE_MINIMAL_MS = 320` | `afficheur.js` | Chaque envoi ouvre et referme le port. Cent ouvertures en seize secondes ont éteint cet afficheur (essais 4 et 13) : le plancher plafonne à trois envois par seconde |
+| `poserSomme(montantSaisi === "" ? total : recu)` | `caisse.js` | Le client voit le total, puis ce qu'on tape de son billet. C'est ce choix qui multiplie les envois, d'où le plancher ci-dessus |
+
+### Le piège du protocole par défaut
+
+**Il faut choisir CD5220 et enregistrer. Laisser le réglage vide éteint
+l'écran.**
+
+`charger_afficheur()` retombe sur `PROTOCOLE_TEXTE` quand rien n'est
+enregistré (`peripheriques.rs`), et `trame()` en protocole texte commence par
+`0C`. Or sur cet afficheur, `0C` seul à 2400 **éteint l'écran** (essai 20), et
+le texte brut ne s'y affiche pas (essai 21). Activer l'afficheur sans choisir
+le protocole ne donne donc pas un affichage absent : il donne un écran noir,
+qu'il faut ensuite réveiller par `ESC @`.
+
+En CD5220, LCOS n'envoie **jamais** `0C` : l'écriture est `ESC Q A`, qui
+efface la ligne avant d'écrire, et l'effacement entre deux clients est
+`ESC Q A` suivi d'espaces. Le risque disparaît avec le bon protocole.
+
 ## Ce qui a été implémenté dans LCOS
 
 ### 1. Le total suit la vente en temps réel — déjà en place
@@ -303,6 +328,15 @@ Protocole respecté : un envoi, arrêt, question, consignation.
 | 28 | 2400 | `1B 51 41` + `_1500.00` + `0D` | `1500.00` | `1500.00`, placé autrement | l'espace de tête occupe une position |
 | 29 | 2400 | `1B 51 41` + `__1500.00` + `0D` | idem 28 | **identique à 28** | neuf caractères tronqués aux huit derniers : **l'écran fait 8 positions, point inclus** |
 | 30 | 2400 | `1B 51 41` + `7` + `0D` | — | **`7` tout à droite** | **l'afficheur cale à droite de lui-même** |
+| 31 | 2400 | `cmd /c mode COM2: BAUD=2400 …` puis `1B 51 41` + `__123.45` + `0D` | `7` | **`123.45`** | **la chaîne de LCOS est validée de bout en bout** |
+
+**Essai 31 — la chaîne complète de LCOS, reproduite à l'identique.** Tous les
+essais précédents passaient par `SerialPort` de .NET, alors que LCOS pose la
+vitesse par `cmd /C mode`. Cette consigne n'avait donc jamais été vérifiée
+sur COM2, et son échec serait passé inaperçu : `envoyer()` l'ignore avec
+`let _ =`. Windows l'accepte et confirme **2400, None, 8, 1, DTR ON, RTS ON,
+CTS et DSR désactivés**. La trame exacte de `trame("123,45", "cd5220", 8)`
+envoyée ensuite sur `\\.\COM2` affiche `123.45`.
 
 **Défaut à corriger, trouvé à l'essai 26** : LCOS formate les sommes à la
 française, `1 500,00`. L'afficheur ignore la virgule et l'espace, et affiche
