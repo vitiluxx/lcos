@@ -151,44 +151,40 @@ aucun serveur a joindre, aujourd hui comme dans dix ans.
 
 ## 2 ter. Emettre une licence pour un poste (reserve a l editeur)
 
-Ce chapitre ne concerne pas le commercant : il decrit comment **l editeur** fabrique une
-cle de licence sur sa propre machine. Rien a installer chez le client, aucune connexion
-internet d un bout a l autre.
+Trois commandes, rien de plus. Tout se passe sur **ta** machine ; chez le client, un
+copier-coller. Aucune connexion internet d un bout a l autre.
 
-### Ce qu il faut avoir sous la main
+### Ce qu il te faut
 
-| Element | Ou le trouver |
+| Element | Valeur |
 |---|---|
-| Le code source de LCOS | `C:\projets_codes\lcos` |
-| La cle privee de signature | `C:\Users\conne\Documents\LCOS\cle_privee_licence_lcos.txt` |
-| Le nom du commerce | Donne par le client |
-| Un numero d emission | Choisi par toi : `0001`, `0002`, `0003`... un par licence |
-| L empreinte du poste | Lue sur la caisse du client (etape 1), **seulement** si la licence doit etre liee a cette caisse |
+| Dossier d ou lancer les commandes | `C:\projets_codes\lcos\src-tauri` |
+| Cle privee de signature | `C:\Users\conne\Documents\LCOS\cle_privee_licence_lcos.txt` |
+| Nom du commerce | donne par le client |
+| Numero d emission | le suivant de ton registre : `0001`, `0002`, `0003`... |
+| Empreinte du poste | relevee a l etape 1 ; facultative |
 
-**Sans la cle privee, aucune licence ne peut plus etre emise**, ni pour un nouveau client
-ni pour les caisses deja installees. Garde-en une copie sur une cle USB rangee ailleurs.
-Ne la mets jamais dans le depot, ni dans un courriel, ni dans ce guide.
+Sans la cle privee, plus aucune licence ne peut etre emise. Copie-la sur une cle USB
+rangee ailleurs. Jamais dans le depot, jamais dans un courriel.
 
-### Etape 1 - Demander l empreinte au client
+### Etape 1 - Relever l empreinte du poste
 
-Au telephone, fais-lui lire :
+Au telephone, fais lire au client :
 
 ```
 LCOS --> icone a trois barres --> Parametrage --> code du gerant --> Licence
 ```
 
-la ligne `Empreinte de ce poste` : un code en quatre groupes, par exemple
-`8A1F-9F27-72BE-F939`. Fais-le repeter deux fois et note-le. Il n y a que des chiffres et
-les lettres `A` a `F`.
+La ligne `Empreinte de ce poste` : quatre groupes, par exemple `8A1F-9F27-72BE-F939`.
+Chiffres et lettres `A` a `F` uniquement. Fais repeter deux fois.
 
-Si les sept jours d essai sont deja passes, c est plus simple encore : l ecran Licence
-s affiche **tout seul** au demarrage et l empreinte y est deja. Le code du gerant n est
-meme pas demande.
+Essai deja termine : l ecran Licence s affiche seul au demarrage, l empreinte y est, le
+code du gerant n est pas demande.
 
-Cette etape peut etre sautee : la licence vaudra alors sur n importe quel poste. Ne la
-saute que pour une demonstration.
+Pour une licence valable sur n importe quel poste, saute cette etape et retire `--poste`
+a l etape 3.
 
-### Etape 2 - Ouvrir une console sur ta machine
+### Etape 2 - Ouvrir la console
 
 Menu Demarrer --> `PowerShell`, puis :
 
@@ -196,37 +192,35 @@ Menu Demarrer --> `PowerShell`, puis :
 cd C:\projets_codes\lcos\src-tauri
 ```
 
-*Pourquoi ce dossier et pas `C:\projets_codes\lcos` :* l outil se lance depuis le dossier
-qui contient `Cargo.toml`. Depuis le dossier du dessus, la commande repond
+C est le dossier qui contient `Cargo.toml`. Ailleurs, la commande repond
 `could not find Cargo.toml`.
 
-### Etape 3 - Fabriquer la licence
+### Etape 3 - Fabriquer la cle
 
-Une seule commande, sur une seule ligne :
+Une seule ligne :
 
 ```
 cargo run --quiet --bin lcos_licence -- generer --cle-privee @C:\Users\conne\Documents\LCOS\cle_privee_licence_lcos.txt --numero 0002 --titulaire "Boutique Chez Ali" --jours 365 --poste 8A1F-9F27-72BE-F939 --sortie C:\Users\conne\Documents\LCOS\licence_0002.txt
 ```
 
-Ce qui change a chaque client :
+A changer a chaque client :
 
 | Morceau | Ce qu on y met |
 |---|---|
-| `--numero 0002` | Le numero suivant de ton registre |
-| `--titulaire "Boutique Chez Ali"` | Le nom du commerce, **entre guillemets** |
-| `--jours 365` | La duree. Ecris `--perpetuelle` a la place de `--jours 365` pour une licence sans fin |
-| `--poste 8A1F-9F27-72BE-F939` | L empreinte de l etape 1. **Retire ce morceau entierement** pour une licence qui vaut partout |
-| `--sortie C:\...\licence_0002.txt` | Le fichier ou ecrire la cle. Facultatif : sans lui, la cle ne fait que s afficher |
+| `--numero 0002` | le numero suivant de ton registre |
+| `--titulaire "Boutique Chez Ali"` | le nom du commerce, **entre guillemets** |
+| `--jours 365` | la duree accordee |
+| `--poste 8A1F-9F27-72BE-F939` | l empreinte de l etape 1 |
+| `--sortie C:\...\licence_0002.txt` | le fichier ou ecrire la cle |
 
-Le `@` devant le chemin de la cle privee veut dire *lis la valeur dans ce fichier*.
-*Pourquoi :* la cle privee ne passe pas par la ligne de commande, donc elle n entre pas
-dans l historique de la console.
+Le `@` devant le chemin signifie *lis la valeur dans ce fichier* : la cle privee n entre
+pas dans l historique de la console.
 
 Reponse attendue :
 
 ```
 licence pour Boutique Chez Ali (numero 0002)
-emise le 2026-10-24 - valable jusqu au 2027-10-24
+emise le 2026-11-01 - valable jusqu au 2027-11-01
 poste : 8A1F-9F27-72BE-F939
 
 LCOS1.eyJudW1lcm8iOiIwMDAyIiwidGl0dWxhaXJlIjoiQm91dGlxdWUgQ2hleiBBbGki...
@@ -234,32 +228,26 @@ LCOS1.eyJudW1lcm8iOiIwMDAyIiwidGl0dWxhaXJlIjoiQm91dGlxdWUgQ2hleiBBbGki...
 ecrit dans C:\Users\conne\Documents\LCOS\licence_0002.txt
 ```
 
-Relis les trois premieres lignes avant d envoyer quoi que ce soit : le nom, la date de
-fin, le poste. L outil a deja verifie lui-meme la signature de la licence qu il vient
-d emettre : si ces trois lignes s affichent, la cle est bonne.
+Relis ces trois premieres lignes avant d envoyer : le nom, la date de fin, le poste. Si
+elles s affichent, la signature a deja ete verifiee par l outil : la cle est bonne.
 
-La premiere commande de la journee peut prendre une a deux minutes, le temps de compiler
+La premiere commande de la journee prend une a deux minutes, le temps de compiler
 l outil. Les suivantes repondent tout de suite.
 
-### Etape 4 - Envoyer la cle au client
+### Etape 4 - Envoyer et faire coller
 
-Le fichier `licence_0002.txt` contient un seul texte, qui commence par `LCOS1.`. Envoie-le
-par WhatsApp, par courriel, ou porte-le sur une cle USB.
-
-Il n y a aucun secret dedans : avec `--poste`, la cle ne sert que sur cette caisse, et
-personne ne peut en fabriquer une autre sans ta cle privee.
-
-### Etape 5 - Faire inserer la cle chez le client
+Le fichier `licence_0002.txt` contient un seul texte, commencant par `LCOS1.`. WhatsApp,
+courriel ou cle USB, au choix : il n y a aucun secret dedans. Chez le client :
 
 ```
 LCOS --> Parametrage --> Licence --> champ Cle de licence --> bouton Activer la licence
 ```
 
+La caisse rouvre immediatement. Pas de redemarrage, pas de reinstallation, pas de reseau.
 Caisse deja fermee : l ecran Licence est le premier a l ouverture, le champ est sous les
-yeux du client. Il colle, il clique, **la caisse rouvre immediatement**. Pas de
-redemarrage, pas de reinstallation, pas de reseau.
+yeux du client.
 
-### Relire une licence plus tard
+### Verifier une cle chez toi (depannage)
 
 ```
 cd C:\projets_codes\lcos\src-tauri
@@ -270,13 +258,23 @@ cargo run --quiet --bin lcos_licence -- verifier @C:\Users\conne\Documents\LCOS\
 licence valide
   numero     : 0002
   titulaire  : Boutique Chez Ali
-  emise le   : 2026-10-24
-  validite   : jusqu au 2027-10-24
+  emise le   : 2026-11-01
+  validite   : jusqu au 2027-11-01
   poste      : 8A1F-9F27-72BE-F939
 ```
 
-C est l outil de depannage : quand un client dit que sa cle est refusee, relis-la chez toi
-et compare la ligne `poste` avec l empreinte que sa caisse affiche.
+Un client dit que sa cle est refusee : relis-la ici et compare la ligne `poste` avec
+l empreinte que sa caisse affiche.
+
+### Les variantes de la commande
+
+| Il faut | Ce qu on change a l etape 3 |
+|---|---|
+| Une licence sans fin | `--perpetuelle` au lieu de `--jours 365` |
+| Une licence valable sur tout poste | retirer `--poste 8A1F-...` entierement |
+| Une periode de reflexion | `--jours 30` |
+| Imposer la date d emission | ajouter `--emise-le 2026-11-01` |
+| Juste afficher la cle, sans fichier | retirer `--sortie C:\...` |
 
 ### Les cas courants
 
@@ -285,14 +283,13 @@ et compare la ligne `poste` avec l empreinte que sa caisse affiche.
 | Renouveler une licence arrivee a terme | Emettre une nouvelle licence avec le numero suivant. Le client la colle par-dessus l ancienne, rien a supprimer. |
 | Deuxieme caisse dans le meme commerce | Une licence par caisse, avec l empreinte de chacune, et deux numeros differents. |
 | Le client a reinstalle Windows, ou supprime `lcos.db` | L empreinte a change. Redemande-la et emets une nouvelle licence. |
-| Le client veut encore reflechir | Une licence courte : `--jours 30`. |
-| Demonstration sur ta propre machine | `--jours 7`, sans `--poste`. |
 | Le client dit que la cle est refusee | Fais-lui recoller la cle entiere, de `LCOS1.` jusqu au dernier caractere ; puis relis-la avec `verifier` et compare le poste. |
 | Retirer une licence d un poste | Chez le client : `LCOS --> Parametrage --> Licence --> bouton Retirer la licence`. La caisse se referme, les donnees restent. |
 
 ### Tiens un registre, a la main
 
-Le logiciel ne garde aucune trace de qui a recu quoi. Un simple fichier texte suffit :
+Le logiciel ne garde aucune trace de qui a recu quoi. Le numero est le seul lien entre
+une licence et un client. Un fichier texte suffit :
 
 ```
 C:\Users\conne\Documents\LCOS\registre_licences.txt
@@ -300,13 +297,10 @@ C:\Users\conne\Documents\LCOS\registre_licences.txt
 
 ```
 0001 ; 2026-10-24 ; Boutique Chez Ali   ; 8A1F-9F27-72BE-F939 ; 365 j ; fin 2027-10-24
-0002 ; 2026-10-24 ; Alimentation Fatou  ; tout poste          ; 30 j  ; fin 2026-11-23
+0002 ; 2026-11-01 ; Alimentation Fatou  ; tout poste          ; 30 j  ; fin 2026-12-01
 ```
 
-*Pourquoi :* le numero est le seul lien entre une licence et un client. Sans registre,
-impossible de savoir a qui une cle a ete delivree, ni quand elle se termine.
-
-### Une commande a ne jamais relancer par curiosite
+### Une commande a ne jamais relancer
 
 ```
 cargo run --bin lcos_licence -- cles
