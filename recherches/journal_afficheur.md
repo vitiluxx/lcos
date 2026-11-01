@@ -65,6 +65,25 @@ c'est `DUREE_RENDU_MS` en haut de `afficheur.js`.
 | `INTERVALLE_MINIMAL_MS = 320` | `afficheur.js` | Chaque envoi ouvre et referme le port. Cent ouvertures en seize secondes ont éteint cet afficheur (essais 4 et 13) : le plancher plafonne à trois envois par seconde |
 | `poserSomme(montantSaisi === "" ? total : recu)` | `caisse.js` | Le client voit le total, puis ce qu'on tape de son billet. C'est ce choix qui multiplie les envois, d'où le plancher ci-dessus |
 
+### Écritures inutiles dans la base, corrigées le 2026-11-01
+
+Trouvées en cherchant pourquoi l'onglet « Commerce et ticket » fige une à
+deux secondes à l'ouverture. Deux chemins écrivaient dans SQLite sans raison,
+et l'un des deux est celui de l'afficheur.
+
+| Où | Ce qui se passait | Correction |
+|---|---|---|
+| `afficher_somme_client` (`peripheriques.rs`) | `parametres::horodater()` à **chaque** envoi. Or la somme part à chaque article scanné et à chaque chiffre tapé : plusieurs écritures par seconde de vente, pour une date que le gérant lit à la minute près | Horodatage au plus une fois par minute, via `REPOS_HORODATAGE` et un instant retenu en mémoire |
+| `jour_de_reference` (`licence.rs`) | Réécrivait la même date à chaque `recuperer_etat_application`, relancé toutes les 20 s par `setInterval` : plus de 4 000 écritures par jour | Écriture seulement quand la date change |
+| `connexion.rs` | Rien ne repliait le journal WAL | `PRAGMA wal_checkpoint(TRUNCATE)` au lancement |
+
+**Pourquoi ça gèle.** En mode WAL, SQLite recopie le journal dans la base dès
+qu'il dépasse mille pages, soit 4 Mo. Sur cette caisse le journal mesurait
+**4 124 152 octets** et le fichier `lcos.db` n'avait pas bougé depuis le
+**27 octobre** : le journal était collé à son seuil, la recopie était retentée
+à chaque écriture sans jamais aboutir, et chaque tentative fige la fenêtre le
+temps qu'elle dure.
+
 ### Le piège du protocole par défaut
 
 **Il faut choisir CD5220 et enregistrer. Laisser le réglage vide éteint
