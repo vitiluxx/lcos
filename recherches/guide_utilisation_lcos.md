@@ -3,6 +3,9 @@
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
 
+Ce guide est celui du commercant. L emission des licences, le reglage de l afficheur
+client et l inventaire du materiel sont dans `recherches/guide_editeur_lcos.md`.
+
 Convention de ce guide :
 
 - **Emplacement** = le chemin exact pour trouver l option dans le logiciel.
@@ -21,29 +24,35 @@ barres**, en haut a droite, juste a cote de `version 1.9.2`.
 Un clic ouvre la liste, un clic sur une ligne change d ecran, un clic ailleurs ou la
 touche `Echap` referme la liste.
 
-| Ecran | Emplacement | A quoi il sert |
-|---|---|---|
-| Caisse | `icone --> Caisse` | Encaisser les clients. C est l ecran de travail. |
-| Session | `icone --> Session` | Ouvrir et fermer la journee d un caissier, relire les ventes enregistrees, et les annuler si le gerant l autorise. |
-| Parametrage | `icone --> Parametrage` | Tout creer, tout modifier, tout consulter. Protege par le code du gerant. |
+- **Caisse**
+  - Emplacement : `icone --> Caisse`
+  - A quoi il sert : encaisser les clients. C est l ecran de travail.
+- **Session**
+  - Emplacement : `icone --> Session`
+  - A quoi il sert : ouvrir et fermer la journee d un caissier, relire les ventes
+    enregistrees, et les annuler si le gerant l autorise.
+- **Parametrage**
+  - Emplacement : `icone --> Parametrage`
+  - A quoi il sert : tout creer, tout modifier, tout consulter. Protege par le code du
+    gerant.
 
-Tout le reste vit dans le Parametrage, en sous-onglets :
+Tout le reste vit dans le Parametrage, en sous-onglets, chacun ouvert par
+`LCOS --> Parametrage --> <nom du sous-onglet>` :
 
-| Sous-onglet | Emplacement | A quoi il sert |
-|---|---|---|
-| Commerce et ticket | `LCOS --> Parametrage --> Commerce et ticket` | Nom du commerce, ticket, largeur du papier. |
-| Devise et decimales | `LCOS --> Parametrage --> Devise et decimales` | Devise, et valeurs apres la virgule. |
-| Impression des recus | `LCOS --> Parametrage --> Impression des recus` | Sortir ou non une feuille apres chaque vente. |
-| Date et heure | `LCOS --> Parametrage --> Date et heure` | Horloge de la caisse et droits administrateur. |
-| Caissiers | `LCOS --> Parametrage --> Caissiers` | Comptes des caissiers. |
-| Rayons | `LCOS --> Parametrage --> Rayons` | Familles de produits. |
-| Produits | `LCOS --> Parametrage --> Produits` | Catalogue, prix, codes-barres. |
-| Code du gerant | `LCOS --> Parametrage --> Code du gerant` | Code et nom du gerant. |
-| Licence | `LCOS --> Parametrage --> Licence` | Etat du droit d usage, empreinte du poste, insertion d une licence. |
-| Export et import | `LCOS --> Parametrage --> Export et import` | Copier la programmation d une caisse a l autre, sauvegarder, restaurer. |
-| Rapports | `LCOS --> Parametrage --> Rapports` | Ventes, rapport Z, remise a zero. |
-| Peripheriques | `LCOS --> Parametrage --> Peripheriques` | Douchette et imprimante du ticket. |
-| Diagnostic | `LCOS --> Parametrage --> Diagnostic` | Verifier que l installation est saine. |
+- **Commerce et ticket** : nom du commerce, ticket, largeur du papier.
+- **Devise et decimales** : devise, et valeurs apres la virgule.
+- **Impression des recus** : sortir ou non une feuille apres chaque vente.
+- **Date et heure** : horloge de la caisse et droits administrateur.
+- **Caissiers** : comptes des caissiers.
+- **Rayons** : familles de produits.
+- **Produits** : catalogue, prix, codes-barres.
+- **Code du gerant** : code et nom du gerant.
+- **Licence** : etat du droit d usage, empreinte du poste, insertion d une licence.
+- **Export et import** : copier la programmation d une caisse a l autre, sauvegarder,
+  restaurer.
+- **Rapports** : ventes, rapport Z, remise a zero.
+- **Peripheriques** : douchette et imprimante du ticket.
+- **Diagnostic** : verifier que l installation est saine.
 
 *Pourquoi :* la barre d onglets prenait une ligne entiere en haut de chaque ecran. Sur
 l ecran de la caisse, cette ligne vaut deux rangees de la calculatrice. Les rapports, les
@@ -91,12 +100,10 @@ Tout fonctionne pendant l essai : les ventes, les tickets, les rapports Z, l ann
 la douchette, l imprimante, l afficheur client. Quatre choses seulement sont plafonnees,
 le temps de juger le logiciel :
 
-| Pendant l essai | Plafond |
-|---|---|
-| Caissiers | 1 |
-| Rayons | 1 |
-| Produits | 6 |
-| Export et import du parametrage | fermes |
+- **Caissiers** : 1
+- **Rayons** : 1
+- **Produits** : 6
+- **Export et import du parametrage** : fermes
 
 Le bouton `Creer` se grise des que le plafond est atteint, et un avertissement le dit
 au-dessus du formulaire. L insertion d une licence leve les quatre plafonds dans la
@@ -132,12 +139,11 @@ ecran Licence --> champ Cle de licence --> bouton Activer la licence
   vaut que pour cette caisse. Une licence emise sans empreinte fonctionne sur n importe
   quelle installation.
 
-| Refus possible | Raison |
-|---|---|
-| `signature de licence invalide` | Cle incomplete, mal recopiee, ou qui ne vient pas de l editeur |
-| `licence de type ... inconnu` | Licence d un format plus recent : mets LCOS a jour |
-| `licence emise pour le poste ...` | Licence liee a une autre caisse |
-| `licence expiree le ...` | Demande une licence a jour |
+- `signature de licence invalide` : cle incomplete, mal recopiee, ou qui ne vient pas de
+  l editeur
+- `licence de type ... inconnu` : licence d un format plus recent : mets LCOS a jour
+- `licence emise pour le poste ...` : licence liee a une autre caisse
+- `licence expiree le ...` : demande une licence a jour
 
 *Pourquoi reculer l horloge ne sert a rien :* LCOS retient le jour le plus avance qu il
 ait jamais vu. Remettre la date en arriere ne rend aucun jour d essai. C est volontaire
@@ -146,170 +152,6 @@ sur un logiciel qui sait regler cette horloge lui-meme.
 *Une licence se verifie hors ligne, pour toujours :* elle porte la signature de
 l editeur, et LCOS ne connait que la cle publique qui la verifie. Aucun appel reseau,
 aucun serveur a joindre, aujourd hui comme dans dix ans.
-
----
-
-## 2 ter. Emettre une licence pour un poste (reserve a l editeur)
-
-Trois commandes, rien de plus. Tout se passe sur **ta** machine ; chez le client, un
-copier-coller. Aucune connexion internet d un bout a l autre.
-
-### Ce qu il te faut
-
-| Element | Valeur |
-|---|---|
-| Dossier d ou lancer les commandes | `C:\projets_codes\lcos\src-tauri` |
-| Cle privee de signature | `C:\Users\conne\Documents\LCOS\cle_privee_licence_lcos.txt` |
-| Nom du commerce | donne par le client |
-| Numero d emission | le suivant de ton registre : `0001`, `0002`, `0003`... |
-| Empreinte du poste | relevee a l etape 1 ; facultative |
-
-Sans la cle privee, plus aucune licence ne peut etre emise. Copie-la sur une cle USB
-rangee ailleurs. Jamais dans le depot, jamais dans un courriel.
-
-### Etape 1 - Relever l empreinte du poste
-
-Au telephone, fais lire au client :
-
-```
-LCOS --> icone a trois barres --> Parametrage --> code du gerant --> Licence
-```
-
-La ligne `Empreinte de ce poste` : quatre groupes, par exemple `8A1F-9F27-72BE-F939`.
-Chiffres et lettres `A` a `F` uniquement. Fais repeter deux fois.
-
-Essai deja termine : l ecran Licence s affiche seul au demarrage, l empreinte y est, le
-code du gerant n est pas demande.
-
-Pour une licence valable sur n importe quel poste, saute cette etape et retire `--poste`
-a l etape 3.
-
-### Etape 2 - Ouvrir la console
-
-Menu Demarrer --> `PowerShell`, puis :
-
-```
-cd C:\projets_codes\lcos\src-tauri
-```
-
-C est le dossier qui contient `Cargo.toml`. Ailleurs, la commande repond
-`could not find Cargo.toml`.
-
-### Etape 3 - Fabriquer la cle
-
-Une seule ligne :
-
-```
-cargo run --quiet --bin lcos_licence -- generer --cle-privee @C:\Users\conne\Documents\LCOS\cle_privee_licence_lcos.txt --numero 0002 --titulaire "Boutique Chez Ali" --jours 365 --poste 8A1F-9F27-72BE-F939 --sortie C:\Users\conne\Documents\LCOS\licence_0002.txt
-```
-
-A changer a chaque client :
-
-| Morceau | Ce qu on y met |
-|---|---|
-| `--numero 0002` | le numero suivant de ton registre |
-| `--titulaire "Boutique Chez Ali"` | le nom du commerce, **entre guillemets** |
-| `--jours 365` | la duree accordee |
-| `--poste 8A1F-9F27-72BE-F939` | l empreinte de l etape 1 |
-| `--sortie C:\...\licence_0002.txt` | le fichier ou ecrire la cle |
-
-Le `@` devant le chemin signifie *lis la valeur dans ce fichier* : la cle privee n entre
-pas dans l historique de la console.
-
-Reponse attendue :
-
-```
-licence pour Boutique Chez Ali (numero 0002)
-emise le 2026-11-01 - valable jusqu au 2027-11-01
-poste : 8A1F-9F27-72BE-F939
-
-LCOS1.eyJudW1lcm8iOiIwMDAyIiwidGl0dWxhaXJlIjoiQm91dGlxdWUgQ2hleiBBbGki...
-
-ecrit dans C:\Users\conne\Documents\LCOS\licence_0002.txt
-```
-
-Relis ces trois premieres lignes avant d envoyer : le nom, la date de fin, le poste. Si
-elles s affichent, la signature a deja ete verifiee par l outil : la cle est bonne.
-
-La premiere commande de la journee prend une a deux minutes, le temps de compiler
-l outil. Les suivantes repondent tout de suite.
-
-### Etape 4 - Envoyer et faire coller
-
-Le fichier `licence_0002.txt` contient un seul texte, commencant par `LCOS1.`. WhatsApp,
-courriel ou cle USB, au choix : il n y a aucun secret dedans. Chez le client :
-
-```
-LCOS --> Parametrage --> Licence --> champ Cle de licence --> bouton Activer la licence
-```
-
-La caisse rouvre immediatement. Pas de redemarrage, pas de reinstallation, pas de reseau.
-Caisse deja fermee : l ecran Licence est le premier a l ouverture, le champ est sous les
-yeux du client.
-
-### Verifier une cle chez toi (depannage)
-
-```
-cd C:\projets_codes\lcos\src-tauri
-cargo run --quiet --bin lcos_licence -- verifier @C:\Users\conne\Documents\LCOS\licence_0002.txt
-```
-
-```
-licence valide
-  numero     : 0002
-  titulaire  : Boutique Chez Ali
-  emise le   : 2026-11-01
-  validite   : jusqu au 2027-11-01
-  poste      : 8A1F-9F27-72BE-F939
-```
-
-Un client dit que sa cle est refusee : relis-la ici et compare la ligne `poste` avec
-l empreinte que sa caisse affiche.
-
-### Les variantes de la commande
-
-| Il faut | Ce qu on change a l etape 3 |
-|---|---|
-| Une licence sans fin | `--perpetuelle` au lieu de `--jours 365` |
-| Une licence valable sur tout poste | retirer `--poste 8A1F-...` entierement |
-| Une periode de reflexion | `--jours 30` |
-| Imposer la date d emission | ajouter `--emise-le 2026-11-01` |
-| Juste afficher la cle, sans fichier | retirer `--sortie C:\...` |
-
-### Les cas courants
-
-| Situation | A faire |
-|---|---|
-| Renouveler une licence arrivee a terme | Emettre une nouvelle licence avec le numero suivant. Le client la colle par-dessus l ancienne, rien a supprimer. |
-| Deuxieme caisse dans le meme commerce | Une licence par caisse, avec l empreinte de chacune, et deux numeros differents. |
-| Le client a reinstalle Windows, ou supprime `lcos.db` | L empreinte a change. Redemande-la et emets une nouvelle licence. |
-| Le client dit que la cle est refusee | Fais-lui recoller la cle entiere, de `LCOS1.` jusqu au dernier caractere ; puis relis-la avec `verifier` et compare le poste. |
-| Retirer une licence d un poste | Chez le client : `LCOS --> Parametrage --> Licence --> bouton Retirer la licence`. La caisse se referme, les donnees restent. |
-
-### Tiens un registre, a la main
-
-Le logiciel ne garde aucune trace de qui a recu quoi. Le numero est le seul lien entre
-une licence et un client. Un fichier texte suffit :
-
-```
-C:\Users\conne\Documents\LCOS\registre_licences.txt
-```
-
-```
-0001 ; 2026-10-24 ; Boutique Chez Ali   ; 8A1F-9F27-72BE-F939 ; 365 j ; fin 2027-10-24
-0002 ; 2026-11-01 ; Alimentation Fatou  ; tout poste          ; 30 j  ; fin 2026-12-01
-```
-
-### Une commande a ne jamais relancer
-
-```
-cargo run --bin lcos_licence -- cles
-```
-
-Elle fabrique une **nouvelle** paire de cles. Elle ne sert qu une fois dans la vie du
-projet, et c est deja fait. La relancer et coller la nouvelle cle publique dans le code
-rendrait d un coup **toutes les licences deja livrees invalides**, sur toutes les caisses
-installees.
 
 ---
 
@@ -353,13 +195,13 @@ Le compte gerant ne peut pas etre supprime. Il peut etre renomme et son code cha
 
 **Emplacement** : `LCOS --> Parametrage --> Commerce et ticket`
 
-| Champ | Role | Commentaire |
-|---|---|---|
-| `Nom du commerce` | Titre imprime en haut du ticket | S affiche aussi dans l entete du logiciel |
-| `Ticket active` | Produit ou non un ticket | Decoche pour vendre sans ticket |
-| `Largeur (colonnes)` | Largeur du papier en caracteres | **32** pour le rouleau 58 mm de la caisse |
-| `Mention d entete` | Ligne sous le nom du commerce | Exemple : `Merci de votre visite` |
-| `Mention de pied` | Derniere ligne du ticket | Exemple : `A bientot` |
+- `Nom du commerce` : titre imprime en haut du ticket. S affiche aussi dans l entete du
+  logiciel
+- `Ticket active` : produit ou non un ticket. decoche pour vendre sans ticket
+- `Largeur (colonnes)` : largeur du papier en caracteres. **32** pour le rouleau 58 mm
+  de la caisse
+- `Mention d entete` : ligne sous le nom du commerce. exemple : `Merci de votre visite`
+- `Mention de pied` : derniere ligne du ticket. exemple : `A bientot`
 
 Terminer par : `bouton Enregistrer`.
 
@@ -374,10 +216,9 @@ fausse coupe les prix a droite.
 champ Devise --> liste Valeurs apres la virgule --> bouton Enregistrer
 ```
 
-| Champ | Role | Commentaire |
-|---|---|---|
-| `Devise` | Texte affiche a cote des totaux | Exemple : `EUR`, `FCFA`, `XOF`, `USD` |
-| `Valeurs apres la virgule` | `Activees : 2 decimales` ou `Desactivees : entiers pleins` | Choix propose automatiquement selon la devise |
+- `Devise` : texte affiche a cote des totaux. exemple : `EUR`, `FCFA`, `XOF`, `USD`
+- `Valeurs apres la virgule` : `Activees : 2 decimales` ou
+  `Desactivees : entiers pleins`. choix propose automatiquement selon la devise
 
 - Devise **FCFA**, `CFA`, `XOF`, `XAF` : LCOS propose de lui-meme `Desactivees`. Tape
   `FCFA` dans `Devise`, sors du champ, la liste se place seule.
@@ -401,10 +242,9 @@ case Imprimer le recu apres chaque vente --> bouton Appliquer
 
 Le badge du panneau indique l etat courant : `activee` ou `desactivee`.
 
-| Etat | Ce qui se passe apres chaque vente |
-|---|---|
-| `activee` | Le ticket part a l imprimante et le panneau du ticket s affiche a l ecran. |
-| `desactivee` | Aucune feuille, aucun panneau : une confirmation apparait **une seconde** au centre de l ecran, puis disparait. |
+- `activee` : le ticket part a l imprimante et le panneau du ticket s affiche a l ecran.
+- `desactivee` : aucune feuille, aucun panneau : une confirmation apparait **une
+  seconde** au centre de l ecran, puis disparait.
 
 - La confirmation porte la somme a rendre quand il y en a une :
   `Vente encaissee - a rendre 500`.
@@ -426,10 +266,10 @@ case Autoriser l annulation d une vente deja encaissee --> bouton Appliquer
 Le badge du panneau dit l etat courant : `activee` ou `desactivee`. **A l installation,
 l option est fermee.**
 
-| Etat | Ce qui est possible dans l ecran Session |
-|---|---|
-| `desactivee` | Les ventes se lisent, rien ne s annule. Aucune croix sur les lignes, la touche `Suppr` ne fait rien. |
-| `activee` | Une croix apparait sur chaque ligne, et la touche `Suppr` agit sur la vente choisie. Un code est demande a chaque annulation. |
+- `desactivee` : les ventes se lisent, rien ne s annule. Aucune croix sur les lignes, la
+  touche `Suppr` ne fait rien.
+- `activee` : une croix apparait sur chaque ligne, et la touche `Suppr` agit sur la
+  vente choisie. Un code est demande a chaque annulation.
 
 Ce que fait une annulation, en une fois : la vente quitte le journal, le stock des
 articles revient, les totaux de la session et du rapport Z redescendent, et une trace
@@ -509,11 +349,9 @@ l avertissement renvoie a la licence (chapitre 2 bis).
 
 **Creer** : `champ Libelle --> champ Ordre d affichage --> bouton Creer`
 
-| Champ | Role | Commentaire |
-|---|---|---|
-| `Libelle` | Nom du rayon | Exemple : `Boissons`, `Epicerie` |
-| `Ordre d affichage` | Position dans la caisse | `0` en premier, puis `1`, `2`... |
-| `Rayon actif` | Visible ou masque | Decocher masque le rayon sans rien perdre |
+- `Libelle` : nom du rayon. exemple : `Boissons`, `Epicerie`
+- `Ordre d affichage` : position dans la caisse. `0` en premier, puis `1`, `2`...
+- `Rayon actif` : visible ou masque. decocher masque le rayon sans rien perdre
 
 Un rayon qui contient des produits ne peut pas etre supprime : vide-le d abord, ou
 decoche simplement `Rayon actif`.
@@ -530,14 +368,14 @@ Chaine complete :
 champ Libelle --> liste Rayon --> champ Code-barres --> champ Prix --> champ Stock --> bouton Creer
 ```
 
-| Champ | Role | Commentaire |
-|---|---|---|
-| `Libelle` | Nom imprime sur le ticket | 2 a 60 caracteres |
-| `Rayon` | Rayon du produit | Obligatoire. Cree le rayon avant le produit |
-| `Code-barres` | Code lu par la douchette | **Clique dans le champ puis scanne l etiquette** |
-| `Prix` | Prix de vente | `1500` ou `1500,50`. Sans decimale : `1500` seulement |
-| `Stock` | `NON` ou un nombre | **`NON` par defaut** : le produit se vend sans aucun stock |
-| `Produit en vente` | Vendable ou non | Decoche retire le produit de la caisse |
+- `Libelle` : nom imprime sur le ticket. 2 a 60 caracteres
+- `Rayon` : rayon du produit. obligatoire. Cree le rayon avant le produit
+- `Code-barres` : code lu par la douchette. **Clique dans le champ puis scanne l
+  etiquette**
+- `Prix` : prix de vente. `1500` ou `1500,50`. Sans decimale : `1500` seulement
+- `Stock` : `NON` ou un nombre. **`NON` par defaut** : le produit se vend sans aucun
+  stock
+- `Produit en vente` : vendable ou non. decoche retire le produit de la caisse
 
 **Le champ `Stock` vaut `NON` sur une fiche neuve.** Laisse-le tel quel : le produit se
 vend immediatement, sans quantite a saisir et sans decompte. Pour suivre un stock, tape
@@ -573,10 +411,15 @@ douchette enverra en caisse. Le taper a la main expose a une faute d un chiffre.
 Un seul fichier, au format `.json`, lisible dans n importe quel editeur de texte et relu
 par LCOS. Deux portees, jamais melangees :
 
-| Portee | Ce que le fichier contient | A quoi ca sert |
-|---|---|---|
-| **Parametrage seul** | Reglages, comptes (gerant et caissiers), rayons, produits avec prix et codes-barres | Programmer une caisse sur un poste, puis porter le tout sur la caisse. Monter une seconde caisse a l identique. |
-| **Avec les ventes** | Le parametrage, plus les compteurs, les sessions, les ventes et les rapports Z | Sauvegarder une caisse et la restaurer telle quelle. |
+- **Parametrage seul**
+  - Ce que le fichier contient : reglages, comptes (gerant et caissiers), rayons,
+    produits avec prix et codes-barres
+  - A quoi ca sert : programmer une caisse sur un poste, puis porter le tout sur la
+    caisse. Monter une seconde caisse a l identique.
+- **Avec les ventes**
+  - Ce que le fichier contient : le parametrage, plus les compteurs, les sessions, les
+    ventes et les rapports Z
+  - A quoi ca sert : sauvegarder une caisse et la restaurer telle quelle.
 
 Le premier panneau annonce ce que la caisse contient : produits, rayons, comptes,
 reglages, ventes en memoire, rapports Z archives.
@@ -628,12 +471,19 @@ Deux facons de designer le fichier, au choix :
 la caisse sont effaces et remplaces par ceux du fichier, en une seule operation : soit
 tout passe, soit rien ne change.
 
-| Refus possible | Raison | Action |
-|---|---|---|
-| `une session de caisse est ouverte` | Un caissier est en poste | `LCOS --> Session --> Fermer la session` |
-| `N vente(s) en memoire` | Importer le parametrage seul effacerait des comptes auxquels ces ventes sont rattachees | Edite un rapport Z (`Parametrage --> Rapports`), puis recommence |
-| `ce fichier ne contient que le parametrage` | La case des ventes est cochee pour un fichier qui n en a pas | Decoche `Importer aussi les ventes...` |
-| `format de fichier N inconnu` | Fichier ecrit par une version plus recente de LCOS | Mets LCOS a jour sur ce poste |
+- `une session de caisse est ouverte`
+  - Raison : un caissier est en poste
+  - Action : `LCOS --> Session --> Fermer la session`
+- `N vente(s) en memoire`
+  - Raison : importer le parametrage seul effacerait des comptes auxquels ces ventes
+    sont rattachees
+  - Action : edite un rapport Z (`Parametrage --> Rapports`), puis recommence
+- `ce fichier ne contient que le parametrage`
+  - Raison : la case des ventes est cochee pour un fichier qui n en a pas
+  - Action : decoche `Importer aussi les ventes...`
+- `format de fichier N inconnu`
+  - Raison : fichier ecrit par une version plus recente de LCOS
+  - Action : mets LCOS a jour sur ce poste
 
 *Pourquoi le menu se reverrouille apres un import :* le fichier porte aussi le compte du
 gerant. Apres l import, **le code du gerant est celui du fichier**, pas celui de la
@@ -671,10 +521,11 @@ sont rattachees au caissier de la session, c est ce qui permet de lire ses totau
 
 **Emplacement** : `LCOS --> Caisse --> sous la calculatrice --> boutons [Mode scan] [Mode manuel]`
 
-| Mode | Quand | Ce que fait la calculatrice |
-|---|---|---|
-| `Mode scan` | Par defaut. Articles etiquetes. | Saisit la somme recue du client, deja posee au total par la touche `Entree`. La touche `*` multiplie la derniere ligne lue. |
-| `Mode manuel` | Articles sans etiquette, prix dictes. | Saisit le prix de chaque article. |
+- `Mode scan` : par defaut. Articles etiquetes. La calculatrice saisit la somme recue du
+  client, deja posee au total par la touche `Entree`. La touche `*` multiplie la
+  derniere ligne lue.
+- `Mode manuel` : articles sans etiquette, prix dictes. La calculatrice saisit le prix
+  de chaque article.
 
 *Pourquoi :* changer de mode remet la vente a zero. Choisis le mode avant de commencer
 a encaisser le client.
@@ -779,24 +630,28 @@ taper le prix --> touche * --> taper la quantite --> touche +
 
 A chaque chiffre tape, LCOS compare la somme recue au total a payer :
 
-| Couleur | Situation | Affichage sous le champ |
-|---|---|---|
-| Rouge | somme recue **inferieure** au total | `Manque` + ce qui reste a encaisser |
-| Bleu | somme recue **egale** au total | `Compte juste`, aucun montant |
-| Vert | somme recue **superieure** au total | `A rendre` + la monnaie a remettre |
+- **Rouge** : somme recue **inferieure** au total. Sous le champ : `Manque` + ce qui
+  reste a encaisser
+- **Bleu** : somme recue **egale** au total. Sous le champ : `Compte juste`, aucun
+  montant
+- **Vert** : somme recue **superieure** au total. Sous le champ : `A rendre` + la
+  monnaie a remettre
 
 *Pourquoi :* la monnaie a rendre n apparait que dans le cas vert. Tant que le champ est
 rouge, le bouton `Encaisser` reste grise et la vente ne part pas.
 
-| Touche | Effet | Emplacement du bouton equivalent |
-|---|---|---|
-| `0` a `9` | Chiffres de la somme recue, ou du prix en mode manuel | Pave de l onglet Caisse |
-| `,` | Separateur des centimes | Touche `,` du pave |
-| `*` | Mode manuel : multiplie le prix tape. Mode scan : multiplie la derniere ligne du panier | Touche `x` du pave |
-| `+` | Ajoute l article au panier (mode manuel), ou valide une quantite | Bouton `+ Ajouter l article` |
-| `Retour arriere` | Efface le dernier chiffre | Touche fleche du pave |
-| `Entree` | Ferme la sommation, puis valide la vente | Bouton `Encaisser (Entree)` |
-| `Echap` | **Defait le dernier geste**, un a la fois | aucun |
+- `0` a `9` : chiffres de la somme recue, ou du prix en mode manuel. Bouton equivalent :
+  pave de l onglet Caisse
+- `,` : separateur des centimes. Bouton equivalent : touche `,` du pave
+- `*` : mode manuel : multiplie le prix tape. Mode scan : multiplie la derniere ligne du
+  panier. Bouton equivalent : touche `x` du pave
+- `+` : ajoute l article au panier (mode manuel), ou valide une quantite. Bouton
+  equivalent : `+ Ajouter l article`
+- `Retour arriere` : efface le dernier chiffre. Bouton equivalent : touche fleche du
+  pave
+- `Entree` : ferme la sommation, puis valide la vente. Bouton equivalent :
+  `Encaisser (Entree)`
+- `Echap` : **Defait le dernier geste**, un a la fois. Bouton equivalent : aucun
 
 Aucune autre touche n est prise en compte dans l ecran Caisse.
 
@@ -805,14 +660,14 @@ Aucune autre touche n est prise en compte dans l ecran Caisse.
 `Echap` revient en arriere d un cran, le geste le plus recent d abord. Elle ne jette
 jamais la vente entiere.
 
-| Situation | Ce que fait `Echap` |
-|---|---|
-| Curseur sur `Somme recue du client`, mode manuel | Le champ `Prix de l article` revient, le panier est intact, la sommation reprend ou elle s etait arretee |
-| Multiplication en cours (`1500 x 3`) | La multiplication est retiree, le prix reste |
-| Un prix en cours de frappe | Le prix est efface, le panier reste |
-| Une somme recue tapee | Le montant est efface, le panier reste |
-| Rien dans les champs | La derniere ligne du panier s en va, et ainsi de suite |
-| Panier vide | `Rien a defaire` |
+- **Curseur sur `Somme recue du client`, mode manuel** : le champ `Prix de l article`
+  revient, le panier est intact, la sommation reprend ou elle s etait arretee
+- **Multiplication en cours (`1500 x 3`)** : la multiplication est retiree, le prix
+  reste
+- **Un prix en cours de frappe** : le prix est efface, le panier reste
+- **Une somme recue tapee** : le montant est efface, le panier reste
+- **Rien dans les champs** : la derniere ligne du panier s en va, et ainsi de suite
+- **Panier vide** : `Rien a defaire`
 
 Pour jeter la vente en cours d un seul geste : bouton `Annuler la vente`. Pour annuler
 une vente **deja encaissee** : chapitre 5.8.
@@ -820,7 +675,7 @@ une vente **deja encaissee** : chapitre 5.8.
 *Pourquoi :* une frappe de trop sur `Echap` ne doit pas couter un panier de vingt
 articles un samedi midi.
 
-Deux touches qui font gagner du temps :
+Trois touches qui font gagner du temps :
 
 - `Montant exact` : remplit la somme recue avec le total exact. Client qui paie juste.
 - `00` : ajoute deux zeros d un coup.
@@ -895,16 +750,24 @@ L onglet exige le code du gerant : `bouton Saisir le code du gerant --> Parametr
 
 ### 6.1 Consulter les ventes des caissiers
 
-| Bloc | Emplacement | Contenu |
-|---|---|---|
-| Compteurs | `Rapports` (haut de page) | Ventes en memoire, `Total vente` (ce que les ventes de la periode ont rapporte), grand total, nombre de remises a zero, dernier numero de ticket |
-| Journal | `Rapports --> Ventes des caissiers` | Une ligne par vente. Liste `Tous les caissiers` pour filtrer, bouton `Rafraichir` pour recharger |
+- **Compteurs**
+  - Emplacement : `Rapports` (haut de page)
+  - Contenu : ventes en memoire, `Total vente` (ce que les ventes de la periode ont
+    rapporte), grand total, nombre de remises a zero, dernier numero de ticket
+- **Journal**
+  - Emplacement : `Rapports --> Ventes des caissiers`
+  - Contenu : une ligne par vente. Liste `Tous les caissiers` pour filtrer, bouton
+    `Rafraichir` pour recharger
+- **Ticket d une vente**
+  - Emplacement : `Rapports --> Ventes des caissiers --> ligne --> bouton Ticket`
+  - Contenu : reaffiche le ticket, reimprimable
+- **Totaux**
+  - Emplacement : `Rapports --> Totaux par caissier`
+  - Contenu : nombre de ventes et montant encaisse par caissier
 
 Les colonnes du journal : `Ticket`, `Date`, `Caissier`, **`Articles`** (les noms des
 articles vendus, avec `x3` quand la ligne en portait trois), `Qte` (le nombre d articles
 du ticket), `Total`.
-| Ticket d une vente | `Rapports --> Ventes des caissiers --> ligne --> bouton Ticket` | Reaffiche le ticket, reimprimable |
-| Totaux | `Rapports --> Totaux par caissier` | Nombre de ventes et montant encaisse par caissier |
 
 ### 6.2 Repartir a zero (rapport Z)
 
@@ -934,14 +797,12 @@ La cloture est refusee si une session est encore ouverte, ou s il n y a aucune v
 
 Une ligne par vente retiree du journal depuis la derniere remise a zero :
 
-| Colonne | Ce qu elle dit |
-|---|---|
-| `Ticket` | Le numero annule, celui qui manque dans la suite |
-| `Encaissee le` | Quand la vente avait ete faite |
-| `Caissier` | Qui l avait encaissee |
-| `Annulee le` | Quand elle a ete annulee |
-| `Par` | Le compte dont le code a servi a l annuler |
-| `Total` | Le montant sorti de la caisse |
+- `Ticket` : le numero annule, celui qui manque dans la suite
+- `Encaissee le` : quand la vente avait ete faite
+- `Caissier` : qui l avait encaissee
+- `Annulee le` : quand elle a ete annulee
+- `Par` : le compte dont le code a servi a l annuler
+- `Total` : le montant sorti de la caisse
 
 La remise a zero emporte ce tableau avec les ventes de la periode : il decrit la periode
 en cours, pas toute la vie de la caisse. Imprime ou note le rapport Z avant de repartir
@@ -965,12 +826,14 @@ Double clic sur le fichier : il s ouvre dans Excel ou LibreOffice Calc.
 
 **Ce qu il contient**, dans l ordre :
 
-| Bloc | Contenu |
-|---|---|
-| Entete | Nom du commerce, numero du rapport Z, date d edition, premiere et derniere vente, plage des numeros de ticket, nombre de ventes, nombre d articles, total vente, grand total |
-| `Detail des ventes` | **Une ligne par article vendu** : ticket, date et heure, caissier, article, code-barres, rayon, quantite, prix unitaire, total de la ligne, total du ticket, somme recue, rendu |
-| `Totaux par caissier` | Nombre de ventes et montant par caissier |
-| `Totaux par rayon` | Quantite et montant par rayon |
+- **Entete** : nom du commerce, numero du rapport Z, date d edition, premiere et
+  derniere vente, plage des numeros de ticket, nombre de ventes, nombre d articles,
+  total vente, grand total
+- `Detail des ventes` : **Une ligne par article vendu** : ticket, date et heure,
+  caissier, article, code-barres, rayon, quantite, prix unitaire, total de la ligne,
+  total du ticket, somme recue, rendu
+- `Totaux par caissier` : nombre de ventes et montant par caissier
+- `Totaux par rayon` : quantite et montant par rayon
 
 Une ligne par article, c est ce qui permet de trier, filtrer et faire un tableau croise
 dans le tableur : c est le seul endroit ou le detail des ventes survit a la remise a
@@ -1023,25 +886,31 @@ bouton Detecter --> liste Imprimante retenue --> liste Voie d impression -->
 cases ESC/POS --> bouton Enregistrer --> bouton Test d impression
 ```
 
-| Champ | Role |
-|---|---|
-| `Imprimante retenue` | L imprimante qui sort les tickets. Son etat est indique entre parentheses. |
-| `Voie d impression` | Trois choix, voir le tableau ci-dessous. |
-| Badge en haut a droite | Nombre d imprimantes vues par Windows. |
+- `Imprimante retenue` : L imprimante qui sort les tickets. Son etat est indique entre
+  parentheses.
+- `Voie d impression` : trois choix, detailles juste apres.
+- **Badge en haut a droite** : nombre d imprimantes vues par Windows.
 
-| Voie d impression | Ce qu elle fait | Quand la choisir |
-|---|---|---|
-| `Fenetre d impression Windows` | Ouvre la fenetre habituelle de Windows. | Pour imprimer sur une autre imprimante ou verifier la mise en page. |
-| `Envoi direct : texte` | Le ticket part sur le rouleau, sans aucune boite de dialogue. | Imprimante ordinaire, ou pilote qui refuse l ESC/POS. |
-| `Envoi direct : ESC/POS thermique 58 mm` | Parle le langage de la thermique : coupe du papier, tiroir-caisse, gras. | **C est le reglage a retenir pour l imprimante integree de la caisse.** |
+- `Fenetre d impression Windows`
+  - Ce qu elle fait : ouvre la fenetre habituelle de Windows.
+  - Quand la choisir : pour imprimer sur une autre imprimante ou verifier la mise en
+    page.
+- `Envoi direct : texte`
+  - Ce qu elle fait : le ticket part sur le rouleau, sans aucune boite de dialogue.
+  - Quand la choisir : imprimante ordinaire, ou pilote qui refuse l ESC/POS.
+- `Envoi direct : ESC/POS thermique 58 mm`
+  - Ce qu elle fait : parle le langage de la thermique : coupe du papier, tiroir-caisse,
+    gras.
+  - Quand la choisir : **C est le reglage a retenir pour l imprimante integree de la
+    caisse.**
 
 La voie ESC/POS ouvre trois cases, sans effet sur les deux autres voies :
 
-| Case | Effet sur le ticket |
-|---|---|
-| `Couper le papier en fin de ticket` | La lame coupe le ticket. A decocher si la machine n a pas de lame. |
-| `Ouvrir le tiroir-caisse` | Impulsion sur le connecteur du tiroir a chaque ticket. |
-| `Entete et totaux en gras` | Nom du commerce en gras et double hauteur, lignes `TOTAL` en gras. |
+- `Couper le papier en fin de ticket` : la lame coupe le ticket. A decocher si la
+  machine n a pas de lame.
+- `Ouvrir le tiroir-caisse` : impulsion sur le connecteur du tiroir a chaque ticket.
+- `Entete et totaux en gras` : nom du commerce en gras et double hauteur, lignes `TOTAL`
+  en gras.
 
 *Pourquoi une voie a part :* la coupe du papier, le tiroir et le gras ne sont pas du
 texte, ce sont des octets de commande. La fenetre d impression de Windows et l envoi
@@ -1070,88 +939,17 @@ n a pas de carte graphique derriere lui, et Windows ne le montre donc **jamais**
 moniteur. Chercher un deuxieme ecran dans les reglages d affichage de Windows ne donnera
 rien : ce n est pas la qu il se configure.
 
-### Savoir par ou il est branche
+### Ce que le client voit, et quand
 
-Deux branchements, et un seul geste pour savoir lequel :
+- **Chaque article scanne, ajoute ou retire** : le total a payer, mis a jour aussitot
+- **Apres l encaissement, s il y a de la monnaie a rendre** : **le rendu, tenu environ 8
+  secondes**, puis retour a zero
+- **Apres l encaissement, compte juste** : le total encaisse reste affiche jusqu a la
+  vente suivante
+- **Vente suivante commencee avant la fin des 8 secondes** : le nouveau total reprend la
+  main aussitot : le client d apres ne lit pas la monnaie du precedent
 
-```
-Parametrage --> Peripheriques --> Materiel detecte sur ce poste
---> bouton Relever le materiel --> tape "com" dans la recherche
-```
-
-| Ce que tu vois | Branchement | Reglage `Branchement` |
-|---|---|---|
-| Une ligne avec un `COM` dans la colonne `Port` | L afficheur a son propre port serie, meme si la prise est de l USB | `Son propre port serie (COM)` |
-| Aucune ligne avec un `COM` | L afficheur est chaine sur la carte de l imprimante thermique : il n a pas de port a lui | `Derriere l imprimante du ticket` |
-
-C est le cas des caisses tout-en-un : la carte de l imprimante porte une prise pour
-l afficheur, et rien n apparait dans les ports de Windows. LCOS envoie alors la somme au
-spouleur de l imprimante du ticket, precedee de la commande qui donne la main a
-l afficheur et suivie de celle qui la rend au rouleau.
-
-### Le regler
-
-```
-case Envoyer la somme sur l afficheur client --> Branchement --> (Port, Vitesse)
---> Largeur --> bouton Enregistrer --> bouton Afficher 123,45 pour voir
-```
-
-| Reglage | Ce qu il faut mettre |
-|---|---|
-| `Branchement` | Voir le tableau ci-dessus |
-| `Port` | Le `COM` trouve dans l inventaire. Absent quand l afficheur passe par l imprimante |
-| `Vitesse` | `9600` dans la quasi totalite des cas. Des caracteres au hasard a l ecran : essaie les autres vitesses |
-| `Protocole` | Voie serie seulement. Six jeux de commandes : `Texte brut`, `CD5220`, `ESC/POS`, `AEDEX`, `UTC Enhanced`, `ADM 787 / 788`. Aucun afficheur ne dit lequel il parle : essaie-les dans l ordre de la liste en regardant l ecran du client. Si les six restent muets, change la vitesse plutot que de recommencer |
-| `Largeur` | Nombre de caracteres par ligne, `20` d ordinaire, `8` au minimum |
-
-#### Reglages etablis sur la caisse P70L
-
-Mesures sur le materiel, trente essais consignes dans
-`recherches/journal_afficheur.md`. A reporter tels quels sur une caisse de ce modele :
-
-| Reglage | Valeur |
-|---|---|
-| `Branchement` | `Son propre port serie (COM)` |
-| `Port` | **COM2** |
-| `Vitesse` | **2400** bauds |
-| `Protocole` | **CD5220** |
-| `Largeur` | **8** |
-
-Cet afficheur est **numerique** : huit positions, chiffres et point decimal seulement.
-Il ignore les lettres sans rien signaler, et il cale les chiffres a droite tout seul. Le
-`0.00` qu il montre au repos n est pas un message d accueil : c est un montant a zero.
-
-**Ecran noir ?** Le reveil est `ESC @` a 2400 bauds sur COM2, c est-a-dire le bouton
-`Afficher 123,45 pour voir` apres avoir pose ces reglages. Avant de connaitre ce remede,
-le seul moyen etait de debrancher le cordon secteur une vingtaine de secondes : un
-redemarrage de Windows ne suffit pas, il ne coupe pas l alimentation de l afficheur.
-
-**Deux choses a ne jamais faire sur ce port :** installer une imprimante du spouleur sur
-`COM2` (elle reserve le port, et il faut redemarrer le poste pour le liberer), et
-enchainer les essais en rafale (cent ouvertures de port en seize secondes eteignent
-l afficheur).
-
-#### Ce que le client voit, et quand
-
-| Moment | Ce qui s affiche |
-|---|---|
-| Chaque article scanne, ajoute ou retire | Le total a payer, mis a jour aussitot |
-| Apres l encaissement, s il y a de la monnaie a rendre | **Le rendu, tenu environ 8 secondes**, puis retour a zero |
-| Apres l encaissement, compte juste | Le total encaisse reste affiche jusqu a la vente suivante |
-| Vente suivante commencee avant la fin des 8 secondes | Le nouveau total reprend la main aussitot : le client d apres ne lit pas la monnaie du precedent |
-
-Les sommes partent avec un **point** decimal et sans separateur de milliers
-(`1500.00`), parce que ces afficheurs ignorent la virgule et l espace : `1 500,00` s y
-lisait `150000`, soit cent cinquante mille au lieu de mille cinq cents.
-
-**Voie imprimante : choisis l imprimante du ticket d abord** (panneau juste au-dessus,
-chapitre 7 bis). Sans imprimante retenue, LCOS refuse d allumer l afficheur, parce qu il
-ne saurait pas par ou envoyer les octets.
-
-Le bouton `Afficher 123,45 pour voir` envoie une somme d essai sans rien enregistrer :
-regarde l ecran arriere pendant que tu cliques. `Effacer l ecran` le rend a blanc.
-
-### Ce qu il affiche, et quand
+### Ce qu il montre, et ce qu il ne montre pas
 
 - Le total a payer, cale a droite, a chaque changement du panier.
 - Jamais la somme recue : c est le montant **a payer** que le client verifie.
@@ -1161,100 +959,155 @@ regarde l ecran arriere pendant que tu cliques. `Effacer l ecran` le rend a blan
 seule fois `Afficheur client muet`, passe le badge en defaut, et n essaie plus jusqu au
 prochain `Enregistrer`. Un ecran arriere en panne ne doit pas arreter une caisse.
 
-| Refus possible | Raison | Action |
-|---|---|---|
-| `port de l afficheur : COM1 a COM256 attendu` | Le port n est pas un port serie | Reporte le `COM` de l inventaire |
-| `vitesse refusee par Windows` | Le port n existe pas, ou un autre logiciel le tient | Verifie le port dans l inventaire, ferme l autre logiciel |
-| `choisis d abord l imprimante du ticket` | Voie imprimante, mais aucune imprimante retenue | `Parametrage --> Peripheriques --> Imprimante du ticket --> Detecter` |
-| `COMn ne repond pas` | Appareil debranche ou eteint | Rebranche, puis `Afficher 123,45 pour voir` |
-
-## 7 quater. Materiel detecte sur ce poste
-
-**Emplacement** : `LCOS --> Parametrage --> Peripheriques --> Materiel detecte sur ce poste`
-
-```
-bouton Relever le materiel  (la lecture prend quelques secondes)
-```
-
-La meme liste que le gestionnaire de peripheriques de Windows, lisible sans quitter
-LCOS : **tout ce qui est branche** (USB, serie, Bluetooth) et **tout ce qui est integre**
-(carte mere, PCI, disques, ecran tactile).
-
-| Colonne | Ce qu elle dit |
-|---|---|
-| `Appareil` | Le nom donne par Windows |
-| `Famille` | Le genre : `Ports`, `Monitor`, `HIDClass`, `USB`, `Printer`... |
-| `Liaison` | Comment l appareil tient a la machine : `USB (branche)`, `PCI (interne)`, `HID`, `ACPI (carte mere)`... |
-| `Port` | Le `COM` quand l appareil est sur un port serie. C est la colonne a lire pour l afficheur client |
-| `Etat` | `en service`, `en defaut`, `inconnu` |
-| `Fabricant` | Tel que Windows le connait |
-
-Le champ de recherche et la liste des familles filtrent la liste : tape `com` pour les
-ports serie, `usb` pour ce qui est branche, le nom du fabricant de la douchette pour la
-retrouver.
-
-*A quoi ca sert, concretement :* trouver le port de l afficheur client, verifier que la
-douchette est bien vue par Windows, savoir si l imprimante integree est en defaut, et
-cela sans ouvrir une seule fenetre de Windows sur une caisse tactile.
-
-*Pourquoi la liste est parfois ecourtee :* un poste Windows declare plus de mille
-elements, pilotes systeme compris. LCOS en garde les 500 premiers par famille et le dit
-sous le tableau.
+Le reglage de cet afficheur (branchement, port, vitesse, protocole) se fait une
+fois a l installation : voir `recherches/guide_editeur_lcos.md`, chapitre 2.
 
 ---
 
 ## 8. Depannage
 
-| Symptome | Cause | Action |
-|---|---|---|
-| L onglet Caisse affiche `Aucune session de caisse ouverte` | Pas de session | `LCOS --> Session --> Ouvrir une session` |
-| Un scan repond `code inconnu` | Produit absent ou code different | `LCOS --> Parametrage --> Produits` --> cree le produit en scannant l etiquette dans `Code-barres` |
-| `Encaisser` reste grise | Panier vide ou somme recue inferieure au total | Ajoute un article, ou complete la somme recue |
-| `code incorrect` au deverrouillage | Code faux | 5 essais puis blocage 60 s : attends, puis ressaie |
-| `trop d essais` | Blocage anti-devinette | Attends le delai indique |
-| La cloture Z est refusee | Session ouverte, ou aucune vente | `LCOS --> Session --> Fermer la session`, puis recommence |
-| Le reglage de l heure est refuse | Droits administrateur manquants | `LCOS --> Parametrage --> Date et heure --> bouton Autoriser LCOS en administrateur`, sinon `bouton Ouvrir le panneau Windows` |
-| Le contenu d un onglet ne change pas | Corrige depuis la 1.3.0 | Mets a jour avec le setup `LCOS_1.4.0_x64-setup.exe` |
-| Je ne trouve plus les onglets Rapports, Peripheriques, Diagnostic | Ils sont passes dans le Parametrage depuis la 1.4.0 | `icone a trois barres --> Parametrage --> code du gerant --> sous-onglet voulu` |
-| Je ne trouve plus la barre d onglets | Remplacee par l icone a trois barres de l entete | `en haut a droite, a cote de la version` |
-| Le total affiche encore une virgule en FCFA | Decimales restees activees | `LCOS --> Parametrage --> Devise et decimales --> Desactivees --> Enregistrer` |
-| La touche `,` a disparu de la calculatrice | Normal : decimales desactivees | Aucune action. Les montants se tapent en entiers |
-| Une feuille sort encore apres chaque vente | Impression des recus activee | `LCOS --> Parametrage --> Impression des recus --> decocher --> Appliquer` |
-| Plus aucun ticket ne sort, mais le rapport Z sort | Normal depuis la 1.4.0 | Le reglage ne touche que la caisse. Reactive-le dans `Impression des recus` |
-| Le papier ne se coupe pas, le tiroir ne s ouvre pas | Voie d impression sans ESC/POS | `LCOS --> Parametrage --> Peripheriques --> Voie d impression --> Envoi direct : ESC/POS thermique 58 mm --> Enregistrer` |
-| `envoi ESC/POS refuse par Windows` | Imprimante absente, eteinte, ou pilote qui refuse les donnees brutes | Verifie l imprimante dans Windows, sinon reviens a `Envoi direct : texte` |
-| Impossible de creer un produit : stock refuse | Le champ `Stock` attend `NON` ou un nombre | Remets `NON` dans `Stock` |
-| Je dois reprogrammer une seconde caisse a l identique | Rien a retaper | `LCOS --> Parametrage --> Export et import --> Exporter le parametrage seul` sur une cle USB, puis importe le fichier sur l autre caisse |
-| L import repond `N vente(s) en memoire` | Le parametrage seul effacerait des comptes rattaches a ces ventes | Edite un rapport Z, puis recommence l import |
-| Le code du gerant ne marche plus apres un import | Normal : c est desormais celui du fichier importe | Saisis le code de la caisse qui a produit le fichier |
-| Aucun fichier dans la liste d import | Mauvais dossier, ou aucun `.json` dedans | Corrige `Dossier`, puis `bouton Relire le dossier` |
-| `version d essai : 1 caissier(s) au maximum` | Plafond de la semaine d essai | Insere une licence (`Parametrage --> Licence`), le plafond tombe aussitot |
-| `version d essai : l export demande une licence` | L export et l import sont fermes pendant l essai | Idem ci-dessus |
-| La liste `Fichier du dossier` est vide a l import | Aucun fichier `.json` dans le dossier d export | Corrige le `Dossier` du panneau Exporter puis `Relire le dossier`, ou tape le chemin complet du fichier |
-| L afficheur client reste eteint | La case n est pas cochee, ou le branchement est faux | `Parametrage --> Peripheriques --> Afficheur client`, puis `Afficher 123,45 pour voir` |
-| Windows ne montre aucun second ecran | Normal : l afficheur client n est pas un moniteur | Il se regle dans `Peripheriques --> Afficheur client`, pas dans l affichage de Windows |
-| Aucun `COM` dans le materiel detecte | L afficheur est chaine derriere l imprimante | Branchement `Derriere l imprimante du ticket` |
-| L afficheur client montre des caracteres au hasard | Mauvaise vitesse | Essaie une autre vitesse, 9600 d abord |
-| `Materiel detecte` repond `lecture impossible` | Le service materiel de Windows etait occupe | Reappuie sur `Relever le materiel` : LCOS fait deja un second essai tout seul |
-| En mode scan, `Entree` n encaisse pas tout de suite | C est voulu depuis la 1.8.0 : la premiere `Entree` pose le total dans la somme recue | Touche `Entree` une seconde fois |
-| Le fichier .csv affiche les accents en caracteres abimes | Le tableur a ouvert le fichier dans le mauvais jeu de caracteres | Ouvre-le par `Donnees --> A partir d un fichier texte`, jeu de caracteres `UTF-8`, separateur `point-virgule` |
-| Le fichier .csv met tout dans une seule colonne | Le tableur attend la virgule comme separateur | Meme chemin que ci-dessus, separateur `point-virgule` |
-| `Echap` ne vide plus la vente | C est voulu depuis la 1.7.0 : elle defait un geste a la fois | Pour jeter la vente entiere : bouton `Annuler la vente` |
-| Aucune croix sur les lignes des ventes, `Suppr` ne fait rien | L option d annulation est fermee | `LCOS --> Parametrage --> Commerce et ticket --> Annulation des ventes` |
-| `annulation des ventes desactivee` | Meme cause, vue du noyau | Idem ci-dessus |
-| `code du caissier de la vente ou du gerant attendu` | Code d un autre caissier, ou code faux | Le code du caissier qui a fait **cette** vente, ou celui du gerant |
-| Un numero de ticket manque dans la suite | Cette vente a ete annulee | `LCOS --> Parametrage --> Rapports --> Ventes annulees` |
-| La touche `*` ne multiplie pas | Elle n agit qu en mode manuel, sur le champ du prix | `bouton Mode manuel`, tape un prix, puis `*` |
-| `Caisse fermee : licence requise` | Les sept jours d essai sont passes | Colle une licence dans le champ, la caisse rouvre aussitot. Les donnees sont intactes |
-| La licence est refusee | Cle incomplete ou recopiee a la main | Recolle la cle entiere, de `LCOS1.` jusqu au dernier caractere |
-| L editeur demande l empreinte du poste | Elle identifie cette caisse | `LCOS --> Parametrage --> Licence`, ligne `Empreinte de ce poste` |
-| Le badge `essai : N j` gene | Il disparait sous licence perpetuelle | Rien a faire : il n est la que pendant l essai ou avec une licence a terme |
-| Aucune imprimante detectee | Pilote absent, imprimante eteinte | Installe le pilote dans Windows --> allume l imprimante --> `LCOS --> Parametrage --> Peripheriques --> bouton Detecter` |
-| Le ticket ne sort pas tout seul | Voie d impression sur `Fenetre d impression Windows` | `LCOS --> Parametrage --> Peripheriques --> Voie d impression --> Enregistrer` |
-| Le bouton `+` n ajoute rien en mode manuel | Champ prix vide ou prix a zero | Tape un prix superieur a `0` avant la touche `+` |
-| Un rayon refuse d etre supprime | Il contient des produits | Deplace ou supprime ses produits, ou decoche `Rayon actif` |
-| Un caissier refuse d etre supprime | Il a des ventes enregistrees | `bouton Modifier --> decocher Compte actif` |
-| Le ticket sort coupe a droite | Largeur mal reglee | `LCOS --> Parametrage --> Commerce et ticket --> Largeur (colonnes)` = `32` |
+- **L onglet Caisse affiche `Aucune session de caisse ouverte`**
+  - Cause : pas de session
+  - Action : `LCOS --> Session --> Ouvrir une session`
+- **Un scan repond `code inconnu`**
+  - Cause : produit absent ou code different
+  - Action : `LCOS --> Parametrage --> Produits` --> cree le produit en scannant l
+    etiquette dans `Code-barres`
+- **`Encaisser` reste grise**
+  - Cause : panier vide ou somme recue inferieure au total
+  - Action : ajoute un article, ou complete la somme recue
+- **`code incorrect` au deverrouillage**
+  - Cause : code faux
+  - Action : 5 essais puis blocage 60 s : attends, puis ressaie
+- **`trop d essais`**
+  - Cause : blocage anti-devinette
+  - Action : attends le delai indique
+- **La cloture Z est refusee**
+  - Cause : session ouverte, ou aucune vente
+  - Action : `LCOS --> Session --> Fermer la session`, puis recommence
+- **Le reglage de l heure est refuse**
+  - Cause : droits administrateur manquants
+  - Action : `LCOS --> Parametrage --> Date et heure --> bouton Autoriser LCOS en administrateur`,
+    sinon `bouton Ouvrir le panneau Windows`
+- **Le contenu d un onglet ne change pas**
+  - Cause : corrige depuis la 1.3.0
+  - Action : mets a jour avec le setup `LCOS_1.4.0_x64-setup.exe`
+- **Je ne trouve plus les onglets Rapports, Peripheriques, Diagnostic**
+  - Cause : ils sont passes dans le Parametrage depuis la 1.4.0
+  - Action :
+    `icone a trois barres --> Parametrage --> code du gerant --> sous-onglet voulu`
+- **Je ne trouve plus la barre d onglets**
+  - Cause : remplacee par l icone a trois barres de l entete
+  - Action : `en haut a droite, a cote de la version`
+- **Le total affiche encore une virgule en FCFA**
+  - Cause : decimales restees activees
+  - Action :
+    `LCOS --> Parametrage --> Devise et decimales --> Desactivees --> Enregistrer`
+- **La touche `,` a disparu de la calculatrice**
+  - Cause : normal : decimales desactivees
+  - Action : aucune action. Les montants se tapent en entiers
+- **Une feuille sort encore apres chaque vente**
+  - Cause : impression des recus activee
+  - Action : `LCOS --> Parametrage --> Impression des recus --> decocher --> Appliquer`
+- **Plus aucun ticket ne sort, mais le rapport Z sort**
+  - Cause : normal depuis la 1.4.0
+  - Action : le reglage ne touche que la caisse. Reactive-le dans `Impression des recus`
+- **Le papier ne se coupe pas, le tiroir ne s ouvre pas**
+  - Cause : voie d impression sans ESC/POS
+  - Action :
+    `LCOS --> Parametrage --> Peripheriques --> Voie d impression --> Envoi direct : ESC/POS thermique 58 mm --> Enregistrer`
+- **`envoi ESC/POS refuse par Windows`**
+  - Cause : imprimante absente, eteinte, ou pilote qui refuse les donnees brutes
+  - Action : verifie l imprimante dans Windows, sinon reviens a `Envoi direct : texte`
+- **Impossible de creer un produit : stock refuse**
+  - Cause : le champ `Stock` attend `NON` ou un nombre
+  - Action : remets `NON` dans `Stock`
+- **Je dois reprogrammer une seconde caisse a l identique**
+  - Cause : rien a retaper
+  - Action :
+    `LCOS --> Parametrage --> Export et import --> Exporter le parametrage seul` sur une
+    cle USB, puis importe le fichier sur l autre caisse
+- **L import repond `N vente(s) en memoire`**
+  - Cause : le parametrage seul effacerait des comptes rattaches a ces ventes
+  - Action : edite un rapport Z, puis recommence l import
+- **Le code du gerant ne marche plus apres un import**
+  - Cause : normal : c est desormais celui du fichier importe
+  - Action : saisis le code de la caisse qui a produit le fichier
+- **Aucun fichier dans la liste d import**
+  - Cause : mauvais dossier, ou aucun `.json` dedans
+  - Action : corrige `Dossier`, puis `bouton Relire le dossier`
+- **`version d essai : 1 caissier(s) au maximum`**
+  - Cause : plafond de la semaine d essai
+  - Action : insere une licence (`Parametrage --> Licence`), le plafond tombe aussitot
+- **`version d essai : l export demande une licence`**
+  - Cause : L export et l import sont fermes pendant l essai
+  - Action : idem ci-dessus
+- **La liste `Fichier du dossier` est vide a l import**
+  - Cause : aucun fichier `.json` dans le dossier d export
+  - Action : corrige le `Dossier` du panneau Exporter puis `Relire le dossier`, ou tape
+    le chemin complet du fichier
+- **En mode scan, `Entree` n encaisse pas tout de suite**
+  - Cause : C est voulu depuis la 1.8.0 : la premiere `Entree` pose le total dans la
+    somme recue
+  - Action : touche `Entree` une seconde fois
+- **Le fichier .csv affiche les accents en caracteres abimes**
+  - Cause : le tableur a ouvert le fichier dans le mauvais jeu de caracteres
+  - Action : ouvre-le par `Donnees --> A partir d un fichier texte`, jeu de caracteres
+    `UTF-8`, separateur `point-virgule`
+- **Le fichier .csv met tout dans une seule colonne**
+  - Cause : le tableur attend la virgule comme separateur
+  - Action : meme chemin que ci-dessus, separateur `point-virgule`
+- **`Echap` ne vide plus la vente**
+  - Cause : C est voulu depuis la 1.7.0 : elle defait un geste a la fois
+  - Action : pour jeter la vente entiere : bouton `Annuler la vente`
+- **Aucune croix sur les lignes des ventes, `Suppr` ne fait rien**
+  - Cause : L option d annulation est fermee
+  - Action : `LCOS --> Parametrage --> Commerce et ticket --> Annulation des ventes`
+- **`annulation des ventes desactivee`**
+  - Cause : meme cause, vue du noyau
+  - Action : idem ci-dessus
+- **`code du caissier de la vente ou du gerant attendu`**
+  - Cause : code d un autre caissier, ou code faux
+  - Action : le code du caissier qui a fait **cette** vente, ou celui du gerant
+- **Un numero de ticket manque dans la suite**
+  - Cause : cette vente a ete annulee
+  - Action : `LCOS --> Parametrage --> Rapports --> Ventes annulees`
+- **La touche `*` ne multiplie pas**
+  - Cause : elle n agit qu en mode manuel, sur le champ du prix
+  - Action : `bouton Mode manuel`, tape un prix, puis `*`
+- **`Caisse fermee : licence requise`**
+  - Cause : les sept jours d essai sont passes
+  - Action : colle une licence dans le champ, la caisse rouvre aussitot. Les donnees
+    sont intactes
+- **La licence est refusee**
+  - Cause : cle incomplete ou recopiee a la main
+  - Action : recolle la cle entiere, de `LCOS1.` jusqu au dernier caractere
+- **L editeur demande l empreinte du poste**
+  - Cause : elle identifie cette caisse
+  - Action : `LCOS --> Parametrage --> Licence`, ligne `Empreinte de ce poste`
+- **Le badge `essai : N j` gene**
+  - Cause : il disparait sous licence perpetuelle
+  - Action : rien a faire : il n est la que pendant l essai ou avec une licence a terme
+- **Aucune imprimante detectee**
+  - Cause : pilote absent, imprimante eteinte
+  - Action : installe le pilote dans Windows --> allume l imprimante -->
+    `LCOS --> Parametrage --> Peripheriques --> bouton Detecter`
+- **Le ticket ne sort pas tout seul**
+  - Cause : voie d impression sur `Fenetre d impression Windows`
+  - Action :
+    `LCOS --> Parametrage --> Peripheriques --> Voie d impression --> Enregistrer`
+- **Le bouton `+` n ajoute rien en mode manuel**
+  - Cause : champ prix vide ou prix a zero
+  - Action : tape un prix superieur a `0` avant la touche `+`
+- **Un rayon refuse d etre supprime**
+  - Cause : il contient des produits
+  - Action : deplace ou supprime ses produits, ou decoche `Rayon actif`
+- **Un caissier refuse d etre supprime**
+  - Cause : il a des ventes enregistrees
+  - Action : `bouton Modifier --> decocher Compte actif`
+- **Le ticket sort coupe a droite**
+  - Cause : largeur mal reglee
+  - Action : `LCOS --> Parametrage --> Commerce et ticket --> Largeur (colonnes)` = `32`
 
 ---
 
