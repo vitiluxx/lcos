@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.1
+# Guide d utilisation LCOS 1.9.2
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -14,7 +14,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.1`.
+barres**, en haut a droite, juste a cote de `version 1.9.2`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -57,7 +57,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.1_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.2_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -1109,6 +1109,46 @@ case Envoyer la somme sur l afficheur client --> Branchement --> (Port, Vitesse)
 | `Vitesse` | `9600` dans la quasi totalite des cas. Des caracteres au hasard a l ecran : essaie les autres vitesses |
 | `Protocole` | Voie serie seulement. Six jeux de commandes : `Texte brut`, `CD5220`, `ESC/POS`, `AEDEX`, `UTC Enhanced`, `ADM 787 / 788`. Aucun afficheur ne dit lequel il parle : essaie-les dans l ordre de la liste en regardant l ecran du client. Si les six restent muets, change la vitesse plutot que de recommencer |
 | `Largeur` | Nombre de caracteres par ligne, `20` d ordinaire, `8` au minimum |
+
+#### Reglages etablis sur la caisse P70L
+
+Mesures sur le materiel, trente essais consignes dans
+`recherches/journal_afficheur.md`. A reporter tels quels sur une caisse de ce modele :
+
+| Reglage | Valeur |
+|---|---|
+| `Branchement` | `Son propre port serie (COM)` |
+| `Port` | **COM2** |
+| `Vitesse` | **2400** bauds |
+| `Protocole` | **CD5220** |
+| `Largeur` | **8** |
+
+Cet afficheur est **numerique** : huit positions, chiffres et point decimal seulement.
+Il ignore les lettres sans rien signaler, et il cale les chiffres a droite tout seul. Le
+`0.00` qu il montre au repos n est pas un message d accueil : c est un montant a zero.
+
+**Ecran noir ?** Le reveil est `ESC @` a 2400 bauds sur COM2, c est-a-dire le bouton
+`Afficher 123,45 pour voir` apres avoir pose ces reglages. Avant de connaitre ce remede,
+le seul moyen etait de debrancher le cordon secteur une vingtaine de secondes : un
+redemarrage de Windows ne suffit pas, il ne coupe pas l alimentation de l afficheur.
+
+**Deux choses a ne jamais faire sur ce port :** installer une imprimante du spouleur sur
+`COM2` (elle reserve le port, et il faut redemarrer le poste pour le liberer), et
+enchainer les essais en rafale (cent ouvertures de port en seize secondes eteignent
+l afficheur).
+
+#### Ce que le client voit, et quand
+
+| Moment | Ce qui s affiche |
+|---|---|
+| Chaque article scanne, ajoute ou retire | Le total a payer, mis a jour aussitot |
+| Apres l encaissement, s il y a de la monnaie a rendre | **Le rendu, tenu environ 8 secondes**, puis retour a zero |
+| Apres l encaissement, compte juste | Le total encaisse reste affiche jusqu a la vente suivante |
+| Vente suivante commencee avant la fin des 8 secondes | Le nouveau total reprend la main aussitot : le client d apres ne lit pas la monnaie du precedent |
+
+Les sommes partent avec un **point** decimal et sans separateur de milliers
+(`1500.00`), parce que ces afficheurs ignorent la virgule et l espace : `1 500,00` s y
+lisait `150000`, soit cent cinquante mille au lieu de mille cinq cents.
 
 **Voie imprimante : choisis l imprimante du ticket d abord** (panneau juste au-dessus,
 chapitre 7 bis). Sans imprimante retenue, LCOS refuse d allumer l afficheur, parce qu il
