@@ -1,4 +1,4 @@
-# Guide editeur LCOS 1.9.5
+# Guide editeur LCOS 1.9.6
 
 Reserve a l editeur et a l installateur : emission des licences, reglage de
 l afficheur client, inventaire du materiel. Le guide du commercant est
