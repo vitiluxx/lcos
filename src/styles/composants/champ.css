@@ -58,6 +58,12 @@
   gap: var(--espace_3);
 }
 
+/* Aide qui porte sur une ligne entiere de champs, et non sur un seul. */
+.formulaire__note {
+  display: block;
+  margin-top: var(--espace_2);
+}
+
 .formulaire__actions {
   display: flex;
   gap: var(--espace_2);
