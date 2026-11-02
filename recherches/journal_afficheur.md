@@ -100,6 +100,27 @@ En CD5220, LCOS n'envoie **jamais** `0C` : l'écriture est `ESC Q A`, qui
 efface la ligne avant d'écrire, et l'effacement entre deux clients est
 `ESC Q A` suivi d'espaces. Le risque disparaît avec le bon protocole.
 
+### Les valeurs sont écrites dans l'interface, le 2026-11-02
+
+L'onglet **Paramétrage → Périphériques** porte maintenant son propre
+aide-mémoire, pour ne plus avoir à relire ce journal au moment d'installer une
+caisse semblable :
+
+| Où | Quoi |
+|---|---|
+| En tête de l'onglet | Un bloc dépliant `<details class="note_modele">`, replié par défaut, qui liste les neuf réglages validés sur la P70L, l'avertissement sur `0C` et le rappel que l'afficheur est numérique |
+| Dans les listes | La mention `(P70L)` sur les valeurs concernées : ESC/POS thermique, port série, 2400 bauds, CD5220 |
+| Sous les champs | Les textes d'aide nomment la valeur de la P70L : COM2 pour le port, 2400 plutôt que 9600, largeur 8, les trois cases ESC/POS cochées |
+
+La mention est `(P70L)` et non `(par défaut)` : ces valeurs ne sont pas celles
+que LCOS applique en l'absence de réglage — le défaut du protocole reste le
+texte brut, celui qui éteint l'écran. Écrire « par défaut » aurait désigné deux
+choses contraires sous le même mot.
+
+Styles ajoutés dans `styles/vues/peripheriques.css` (`.note_modele*`), avec un
+repli en une colonne sous 720 px. Replié, le bloc ne coûte qu'une ligne : la
+douchette reste visible à l'ouverture de l'onglet sur le 1366x768.
+
 ## Ce qui a été implémenté dans LCOS
 
 ### 1. Le total suit la vente en temps réel — déjà en place

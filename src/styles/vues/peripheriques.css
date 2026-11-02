@@ -25,6 +25,96 @@
   color: var(--couleur_texte_faible);
 }
 
+/*
+ * Note de reglage par modele de caisse. Replie, elle ne coute qu une ligne ;
+ * depliee, elle tient le role d un aide-memoire sans ouvrir d autre ecran.
+ */
+.note_modele {
+  margin-top: var(--espace_5);
+  padding: var(--espace_3) var(--espace_4);
+  border: 1px solid var(--couleur_bordure);
+  border-left-width: 4px;
+  border-left-color: var(--couleur_information);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  font-size: 13px;
+}
+
+.note_modele__titre {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--couleur_information);
+}
+
+/* Le chevron par defaut est garde : il dit a lui seul que le bloc s ouvre. */
+.note_modele__titre:focus-visible {
+  outline: 2px solid var(--couleur_accent);
+  outline-offset: 2px;
+}
+
+.note_modele__texte {
+  margin-top: var(--espace_3);
+  color: var(--couleur_texte_faible);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.note_modele__texte--alerte {
+  color: var(--couleur_alerte);
+}
+
+.note_modele__repere {
+  font-weight: 600;
+  color: var(--couleur_information);
+}
+
+.note_modele__tableau {
+  width: 100%;
+  margin-top: var(--espace_3);
+  border-collapse: collapse;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.note_modele__tableau th,
+.note_modele__tableau td {
+  padding: var(--espace_2) var(--espace_3);
+  border-top: 1px solid var(--couleur_bordure);
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Les intitules a gauche, assez large pour qu aucun ne passe sur deux lignes. */
+.note_modele__tableau th {
+  width: 190px;
+  font-weight: 600;
+  color: var(--couleur_texte);
+  white-space: nowrap;
+}
+
+.note_modele__tableau td {
+  color: var(--couleur_texte_faible);
+}
+
+.note_modele__tableau code {
+  color: var(--couleur_texte);
+}
+
+/* Sous 720 px, la colonne des intitules etranglerait celle des valeurs. */
+@media (max-width: 720px) {
+  .note_modele__tableau th,
+  .note_modele__tableau td {
+    display: block;
+    width: auto;
+    white-space: normal;
+  }
+
+  .note_modele__tableau td {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
 .carte--large {
   grid-column: 1 / -1;
 }

@@ -116,6 +116,18 @@ pub fn enregistrer_reglages_impression(
         ));
     }
 
+    // Une imprimante virtuelle se declare `prete` comme les autres et le
+    // spouleur avale ses octets sans broncher : retenue par megarde, elle
+    // envoie les tickets dans un fichier pendant des semaines sans qu aucune
+    // erreur ne le signale. Observe sur la caisse P70L, ou le ticket partait
+    // au XPS Document Writer depuis neuf jours.
+    //
+    // Le mode navigateur n est pas concerne : il passe par la fenetre
+    // d impression de Windows, ou le choix se refait a chaque ticket.
+    if mode_retenu != MODE_NAVIGATEUR {
+        exiger_imprimante_materielle(&nom)?;
+    }
+
     depot.executer(|connexion| {
         parametres::ecrire(connexion, CLE_MODE, mode_retenu)?;
         parametres::ecrire(connexion, CLE_NOM, &nom)?;
@@ -303,20 +315,43 @@ fn memoriser_detection(
     parametres::horodater(connexion, CLE_DERNIERE_DETECTION)?;
 
     let retenue = parametres::lire_ou(connexion, CLE_NOM, "")?;
-    let connue = disponibles
-        .iter()
-        .any(|imprimante| imprimante.nom == retenue);
 
-    if !retenue.trim().is_empty() && connue {
-        return Ok(());
+    let materielles: Vec<&Imprimante> = disponibles
+        .iter()
+        .filter(|imprimante| !imprimante.virtuelle)
+        .collect();
+
+    // Le choix du gerant est garde, sauf quand il porte sur une imprimante
+    // virtuelle alors qu une imprimante branchee existe. Ce choix-la ne sort
+    // aucun ticket et ne se signale jamais : le spouleur avale les octets, et
+    // rien n echoue. Sur la caisse P70L, le ticket est parti au XPS Document
+    // Writer pendant neuf jours sans qu aucune erreur ne le dise.
+    if let Some(imprimante) = disponibles
+        .iter()
+        .find(|imprimante| imprimante.nom == retenue)
+    {
+        if !imprimante.virtuelle || materielles.is_empty() {
+            return Ok(());
+        }
     }
 
-    let defaut = disponibles
+    // L imprimante par defaut de Windows est souvent virtuelle : un poste
+    // neuf sort avec `Microsoft Print to PDF` ou le XPS en defaut. Le
+    // materiel passe donc d abord, et le defaut de Windows ne departage que
+    // les imprimantes branchees entre elles.
+    let choisie = materielles
         .iter()
         .find(|imprimante| imprimante.par_defaut)
+        .or_else(|| materielles.first())
+        .copied()
+        .or_else(|| {
+            disponibles
+                .iter()
+                .find(|imprimante| imprimante.par_defaut)
+        })
         .unwrap_or(&disponibles[0]);
 
-    parametres::ecrire(connexion, CLE_NOM, &defaut.nom)
+    parametres::ecrire(connexion, CLE_NOM, &choisie.nom)
 }
 
 /// Le port et le pilote sont releves en plus de l etat : l etat du spouleur ne
@@ -366,6 +401,49 @@ fn analyser_ligne(ligne: &str) -> Option<Imprimante> {
         virtuelle: !mene_a_du_materiel(&port),
         port,
     })
+}
+
+/// Refuse une imprimante dont le port ne mene a aucun materiel, et nomme
+/// celles qui conviennent : le gerant ne doit pas avoir a deviner laquelle
+/// est la thermique de sa caisse.
+///
+/// Le doute profite au reglage : spouleur illisible ou imprimante absente de
+/// l enumeration, l enregistrement passe. Mieux vaut un reglage accepte qu un
+/// parametrage bloque par une enumeration en echec.
+fn exiger_imprimante_materielle(nom: &str) -> Resultat<()> {
+    let disponibles = match enumerer() {
+        Ok(liste) => liste,
+        Err(_) => return Ok(()),
+    };
+
+    let retenue = match disponibles.iter().find(|imprimante| imprimante.nom == nom) {
+        Some(imprimante) => imprimante,
+        None => return Ok(()),
+    };
+
+    if !retenue.virtuelle {
+        return Ok(());
+    }
+
+    let materielles: Vec<&str> = disponibles
+        .iter()
+        .filter(|imprimante| !imprimante.virtuelle)
+        .map(|imprimante| imprimante.nom.as_str())
+        .collect();
+
+    let conseil = if materielles.is_empty() {
+        "Aucune imprimante branchee n est visible : verifie le cable et l alimentation.".to_string()
+    } else {
+        format!("Imprimantes branchees : {}.", materielles.join(", "))
+    };
+
+    let port = retenue.port.trim();
+
+    Err(ErreurApplication::Validation(format!(
+        "{nom} est une imprimante virtuelle : son port ({}) ne mene a aucun materiel. \
+         Les tickets partiraient dans un fichier, sans qu aucune erreur ne le signale. {conseil}",
+        if port.is_empty() { "inconnu" } else { port }
+    )))
 }
 
 /// Un port qui mene a du materiel : serie, parallele, USB ou reseau.

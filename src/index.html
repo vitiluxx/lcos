@@ -1451,6 +1451,94 @@
           <span class="badge badge--attente" id="badge_scanner">en attente</span>
         </div>
 
+        <!--
+          Repere de reglage : les valeurs relevees sur le materiel de la caisse
+          P70L. Replie par defaut, pour ne pas repousser la douchette hors de
+          l ecran sur un 1366x768. Les memes valeurs portent la mention (P70L)
+          dans les listes de cette page.
+        -->
+        <details class="note_modele">
+          <summary class="note_modele__titre">
+            Reglages qui fonctionnent sur une caisse P70L
+          </summary>
+
+          <p class="note_modele__texte">
+            Releves et verifies sur le materiel. Les listes de cette page portent
+            la mention <span class="note_modele__repere">(P70L)</span> sur ces
+            memes valeurs. Une autre caisse peut en demander d autres : ce sont
+            des points de depart, pas des obligations.
+          </p>
+
+          <table class="note_modele__tableau">
+            <tbody>
+              <tr>
+                <th>Imprimante retenue</th>
+                <td>
+                  <code>LCOS Ticket LPT1</code>, ou toute imprimante sur un port
+                  <strong>LPT, COM ou USB</strong>. Jamais
+                  <em>Microsoft XPS Document Writer</em> ni <em>Print to PDF</em> :
+                  celles-la ecrivent dans un fichier, aucun ticket ne sort du
+                  rouleau et le tiroir ne s ouvre pas.
+                </td>
+              </tr>
+              <tr>
+                <th>Voie d impression</th>
+                <td>Envoi direct : ESC/POS thermique 58 mm</td>
+              </tr>
+              <tr>
+                <th>Options ESC/POS</th>
+                <td>
+                  les trois cochees : coupe du papier,
+                  <strong>ouvrir le tiroir-caisse</strong>, gras
+                </td>
+              </tr>
+              <tr>
+                <th>Tiroir-caisse</th>
+                <td>
+                  son cable va sur la prise <code>DK</code> de l imprimante, pas
+                  sur l ordinateur. Il ne figure donc dans aucun materiel detecte,
+                  et c est normal : c est l imprimante qui l ouvre.
+                </td>
+              </tr>
+              <tr>
+                <th>Afficheur : branchement</th>
+                <td>son propre port serie (COM)</td>
+              </tr>
+              <tr>
+                <th>Afficheur : port</th>
+                <td><code>COM2</code></td>
+              </tr>
+              <tr>
+                <th>Afficheur : vitesse</th>
+                <td>2400 bauds, et non 9600 comme ailleurs</td>
+              </tr>
+              <tr>
+                <th>Afficheur : protocole</th>
+                <td>CD5220</td>
+              </tr>
+              <tr>
+                <th>Afficheur : largeur</th>
+                <td>8</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="note_modele__texte note_modele__texte--alerte">
+            A ne pas melanger : en <strong>Texte brut</strong> ou en
+            <strong>ESC/POS</strong>, l afficheur de la P70L recoit un ordre
+            d effacement qui eteint son ecran pour de bon. Seul un debranchement
+            de son cordon secteur le rallume ; un redemarrage de Windows n y
+            suffit pas. Garde CD5220.
+          </p>
+
+          <p class="note_modele__texte">
+            Cet afficheur est <strong>numerique</strong> : huit positions, chiffres
+            et point decimal seulement. Il ignore les lettres et cale les chiffres
+            a droite tout seul. Un ecran qui montre <code>0.00</code> affiche donc
+            un montant nul, et non un message d accueil.
+          </p>
+        </details>
+
         <div class="grille_cartes">
           <article class="carte carte--large">
             <h2 class="carte__titre">Dernier code lu</h2>
@@ -1546,7 +1634,7 @@
                 <select class="champ__liste" id="imprimante_mode">
                   <option value="navigateur">Fenetre d impression Windows</option>
                   <option value="systeme">Envoi direct : texte</option>
-                  <option value="escpos">Envoi direct : ESC/POS thermique 58 mm</option>
+                  <option value="escpos">Envoi direct : ESC/POS thermique 58 mm (P70L)</option>
                 </select>
                 <span class="champ__aide">
                   ESC/POS : coupe du papier, tiroir-caisse et gras. A retenir pour
@@ -1555,25 +1643,37 @@
               </div>
             </div>
 
-            <div class="formulaire__ligne" id="imprimante_options_escpos">
-              <div class="champ champ--bascule">
-                <input id="imprimante_coupe" type="checkbox" />
-                <label class="champ__etiquette" for="imprimante_coupe">
-                  Couper le papier en fin de ticket
-                </label>
+            <!--
+              L aide est dans le meme bloc que les cases : elle disparait avec
+              elles quand la voie n est pas l ESC/POS, sinon elle parlerait de
+              cases qui ne sont plus a l ecran.
+            -->
+            <div id="imprimante_options_escpos">
+              <div class="formulaire__ligne">
+                <div class="champ champ--bascule">
+                  <input id="imprimante_coupe" type="checkbox" />
+                  <label class="champ__etiquette" for="imprimante_coupe">
+                    Couper le papier en fin de ticket
+                  </label>
+                </div>
+                <div class="champ champ--bascule">
+                  <input id="imprimante_tiroir" type="checkbox" />
+                  <label class="champ__etiquette" for="imprimante_tiroir">
+                    Ouvrir le tiroir-caisse
+                  </label>
+                </div>
+                <div class="champ champ--bascule">
+                  <input id="imprimante_gras" type="checkbox" />
+                  <label class="champ__etiquette" for="imprimante_gras">
+                    Entete et totaux en gras
+                  </label>
+                </div>
               </div>
-              <div class="champ champ--bascule">
-                <input id="imprimante_tiroir" type="checkbox" />
-                <label class="champ__etiquette" for="imprimante_tiroir">
-                  Ouvrir le tiroir-caisse
-                </label>
-              </div>
-              <div class="champ champ--bascule">
-                <input id="imprimante_gras" type="checkbox" />
-                <label class="champ__etiquette" for="imprimante_gras">
-                  Entete et totaux en gras
-                </label>
-              </div>
+
+              <span class="champ__aide formulaire__note">
+                Sur une caisse P70L : les trois cochees. Le tiroir ne s ouvre
+                qu en ESC/POS, et seulement si cette case l est.
+              </span>
             </div>
 
             <div class="formulaire__actions">
@@ -1614,7 +1714,7 @@
             <div class="champ">
               <label class="champ__etiquette" for="afficheur_voie">Branchement</label>
               <select class="champ__liste" id="afficheur_voie">
-                <option value="serie">Son propre port serie (COM)</option>
+                <option value="serie">Son propre port serie (COM) (P70L)</option>
                 <option value="imprimante">Derriere l imprimante du ticket</option>
               </select>
               <span class="champ__aide" id="afficheur_voie_aide">
@@ -1627,19 +1727,23 @@
               <div class="champ">
                 <label class="champ__etiquette" for="afficheur_port">Port</label>
                 <select class="champ__liste" id="afficheur_port"></select>
-                <span class="champ__aide" id="afficheur_port_aide">aucun port detecte</span>
+                <span class="champ__aide" id="afficheur_port_aide">
+                  aucun port detecte &middot; COM2 sur une caisse P70L
+                </span>
               </div>
               <div class="champ">
                 <label class="champ__etiquette" for="afficheur_debit">Vitesse</label>
                 <select class="champ__liste" id="afficheur_debit">
                   <option value="1200">1200 bauds</option>
-                  <option value="2400">2400 bauds</option>
+                  <option value="2400">2400 bauds (P70L)</option>
                   <option value="4800">4800 bauds</option>
                   <option value="9600">9600 bauds</option>
                   <option value="19200">19200 bauds</option>
                   <option value="38400">38400 bauds</option>
                 </select>
-                <span class="champ__aide">9600 dans la quasi totalite des cas</span>
+                <span class="champ__aide">
+                  9600 dans la quasi totalite des cas, mais 2400 sur une caisse P70L
+                </span>
               </div>
             </div>
 
@@ -1648,7 +1752,7 @@
                 <label class="champ__etiquette" for="afficheur_protocole">Protocole</label>
                 <select class="champ__liste" id="afficheur_protocole">
                   <option value="texte">Texte brut</option>
-                  <option value="cd5220">CD5220 (afficheur 2x20)</option>
+                  <option value="cd5220">CD5220 (afficheur 2x20) (P70L)</option>
                   <option value="escpos">ESC/POS (afficheur chaine sur l imprimante)</option>
                   <option value="aedex">AEDEX</option>
                   <option value="utc">UTC Enhanced</option>
@@ -1657,7 +1761,9 @@
                 <span class="champ__aide">
                   Aucun afficheur ne dit lequel il parle : essaie-les dans l ordre de la
                   liste en regardant l ecran du client. Si rien ne vient apres les six,
-                  change la vitesse plutot que de recommencer.
+                  change la vitesse plutot que de recommencer. Texte brut et ESC/POS
+                  commencent par un ordre d effacement : sur certains afficheurs, dont
+                  celui de la P70L, il eteint l ecran jusqu au debranchement du secteur.
                 </span>
               </div>
               <div class="champ">
@@ -1669,7 +1775,10 @@
                   inputmode="numeric"
                   autocomplete="off"
                 />
-                <span class="champ__aide">caracteres par ligne : 20 d ordinaire, 8 au moins</span>
+                <span class="champ__aide">
+                  caracteres par ligne : 20 d ordinaire, 8 au moins, et 8 sur une
+                  caisse P70L
+                </span>
               </div>
             </div>
 
