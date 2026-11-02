@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.5
+# Guide d utilisation LCOS 1.9.6
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -17,7 +17,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.5`.
+barres**, en haut a droite, juste a cote de `version 1.9.6`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -66,7 +66,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.5_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.6_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
