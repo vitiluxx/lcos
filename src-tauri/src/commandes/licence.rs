@@ -341,11 +341,19 @@ fn jour_de_reference(connexion: &Connection, maintenant: &str) -> Resultat<Strin
     let aujourd_hui = maintenant.chars().take(10).collect::<String>();
 
     let retenu = match horodatage::jours_entre(&vu, &aujourd_hui) {
-        Some(ecart) if ecart < 0 => vu,
+        Some(ecart) if ecart < 0 => vu.clone(),
         _ => aujourd_hui,
     };
 
-    parametres::ecrire(connexion, CLE_ESSAI_DERNIER_JOUR, &retenu)?;
+    // L etat de l application est relu toutes les vingt secondes, et cette
+    // date ne change qu une fois par jour. Reecrire la meme valeur a chaque
+    // passage ajoutait plus de quatre mille lignes par jour au journal WAL de
+    // SQLite, sans que rien ne les reclame : le journal gonflait jusqu au
+    // seuil de bascule, et la bascule gele la fenetre le temps de recopier le
+    // journal dans la base.
+    if retenu != vu {
+        parametres::ecrire(connexion, CLE_ESSAI_DERNIER_JOUR, &retenu)?;
+    }
 
     Ok(retenu)
 }

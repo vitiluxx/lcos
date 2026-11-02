@@ -5,10 +5,16 @@ use rusqlite::Connection;
 
 use crate::erreur::{ErreurApplication, Resultat};
 
+/// Le repli du journal ferme la marche. En mode WAL, SQLite recopie le
+/// journal dans la base des qu il depasse mille pages, soit quatre mega-octets
+/// : au-dela, chaque ecriture retente cette recopie, et la fenetre se fige une
+/// seconde ou deux le temps qu elle se fasse. Au lancement, aucun autre
+/// lecteur ne tient la base, donc le repli aboutit et repart de zero.
 const REGLAGES: &str = "PRAGMA journal_mode = WAL; \
                         PRAGMA foreign_keys = ON; \
                         PRAGMA synchronous = NORMAL; \
-                        PRAGMA busy_timeout = 5000;";
+                        PRAGMA busy_timeout = 5000; \
+                        PRAGMA wal_checkpoint(TRUNCATE);";
 
 pub struct Depot {
     connexion: Mutex<Connection>,

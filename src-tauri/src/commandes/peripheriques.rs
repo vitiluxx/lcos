@@ -17,6 +17,7 @@
 use std::io::Write;
 use std::process::Command;
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -544,7 +545,13 @@ pub fn afficher_somme_client(depot: State<Depot>, centimes: i64, decimales: i64)
 
     envoyer(&reglages, &texte)?;
 
-    depot.executer(|connexion| parametres::horodater(connexion, CLE_AFFICHEUR_DERNIER_ENVOI))?;
+    // Cet horodatage ne sert qu a dire au gerant quand l afficheur a parle
+    // pour la derniere fois. La somme, elle, part a chaque article scanne et
+    // a chaque chiffre tape : une ecriture par envoi remplissait le journal
+    // WAL de SQLite au rythme de plusieurs lignes par seconde de vente.
+    if horodatage_a_ecrire() {
+        depot.executer(|connexion| parametres::horodater(connexion, CLE_AFFICHEUR_DERNIER_ENVOI))?;
+    }
 
     Ok(true)
 }
@@ -606,6 +613,33 @@ fn envoyer(reglages: &ReglagesAfficheur, texte: &str) -> Resultat<()> {
     }
 
     envoi
+}
+
+/// Repos entre deux horodatages du dernier envoi. Le gerant lit cette date a
+/// la minute pres : l ecrire plus souvent n apporte rien et coute une
+/// ecriture dans la base a chaque somme affichee.
+const REPOS_HORODATAGE: Duration = Duration::from_secs(60);
+
+/// Instant du dernier horodatage reellement ecrit.
+static DERNIER_HORODATAGE: Mutex<Option<Instant>> = Mutex::new(None);
+
+/// Vrai quand le repos est ecoule, et retient alors l instant. Un verrou
+/// empoisonne ne doit pas arreter une vente : la valeur gardee n est qu une
+/// memoire de confort.
+fn horodatage_a_ecrire() -> bool {
+    let mut dernier = DERNIER_HORODATAGE
+        .lock()
+        .unwrap_or_else(|empoisonne| empoisonne.into_inner());
+
+    let maintenant = Instant::now();
+
+    match *dernier {
+        Some(precedent) if maintenant.duration_since(precedent) < REPOS_HORODATAGE => false,
+        _ => {
+            *dernier = Some(maintenant);
+            true
+        }
+    }
 }
 
 /// Port et vitesse deja poses depuis le lancement de LCOS.
@@ -981,6 +1015,17 @@ mod tests {
 
         assert!(analyser_materiel("Nom seul\tPorts").is_none());
         assert!(analyser_materiel("\t\t\t\t\t").is_none());
+    }
+
+    #[test]
+    fn n_horodate_pas_a_chaque_somme_affichee() {
+        // La somme part a chaque article scanne et a chaque chiffre tape.
+        // Sans ce repos, chaque envoi ecrivait une ligne dans la base, le
+        // journal WAL gonflait jusqu a son seuil de bascule, et la bascule
+        // gele la fenetre le temps de se faire.
+        assert!(horodatage_a_ecrire(), "premier envoi : la date est posee");
+        assert!(!horodatage_a_ecrire(), "envoi suivant : rien a reecrire");
+        assert!(!horodatage_a_ecrire());
     }
 
     #[test]
