@@ -17,7 +17,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use crate::depot::{horloge, sessions, transfert, Depot};
+use crate::depot::{compteurs, horloge, parametres, sessions, transfert, Depot};
+use crate::domaine::horodatage;
 use crate::erreur::{ErreurApplication, Resultat};
 use crate::securite::jetons::ROLE_GERANT;
 use crate::securite::RegistreJetons;
@@ -29,6 +30,11 @@ const FORMAT: i64 = 1;
 
 const CONTENU_PARAMETRAGE: &str = "parametrage";
 const CONTENU_COMPLET: &str = "complet";
+
+/// Date de la derniere sauvegarde emportant les ventes. Seule celle-la
+/// compte : un export du parametrage seul ne contient aucune trace des
+/// periodes closes, donc il ne protege rien de ce qu un effacement retire.
+const CLE_DERNIERE_SAUVEGARDE: &str = "transfert_derniere_sauvegarde";
 
 const DOSSIER_SAUVEGARDES: &str = "LCOS";
 const EXTENSION: &str = "json";
@@ -88,7 +94,17 @@ pub struct EtatTransfert {
     /// Faux pendant l essai : l ecran grise l export et l import, que le
     /// noyau refuse de toute facon.
     pub sous_licence: bool,
+    /// Vide quand aucune sauvegarde avec les ventes n a jamais ete ecrite.
+    pub derniere_sauvegarde: String,
     pub fichiers: Vec<FichierSauvegarde>,
+}
+
+/// Ce qu une remise a neuf a retire.
+#[derive(Debug, Serialize)]
+pub struct RemiseANeuf {
+    pub ventes: i64,
+    pub sessions: i64,
+    pub rapports_z: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -121,6 +137,7 @@ pub fn recuperer_etat_transfert(
             resume,
             session_ouverte: sessions::ouverte(connexion)?.is_some(),
             sous_licence: licence::sous_licence(connexion)?,
+            derniere_sauvegarde: derniere_sauvegarde(connexion)?,
             fichiers: lister(&cible),
         })
     })
@@ -173,6 +190,20 @@ pub fn exporter_sauvegarde(
     let chemin = cible.join(&nom);
 
     std::fs::write(&chemin, texte.as_bytes())?;
+
+    // La date n est posee qu apres l ecriture, et seulement pour une
+    // sauvegarde complete : annoncer une copie qui n est pas sur le disque
+    // serait pire que n afficher aucune date.
+    // Date posee par l horloge locale, comme le nom du fichier : `horodater`
+    // ecrirait `datetime('now')`, c est-a-dire UTC, et l ecran annoncerait une
+    // sauvegarde faite une heure plus tot que le fichier qu elle designe.
+    if avec_donnees {
+        depot.executer(|connexion| {
+            let maintenant = horloge::maintenant(connexion)?;
+
+            parametres::ecrire(connexion, CLE_DERNIERE_SAUVEGARDE, &maintenant)
+        })?;
+    }
 
     Ok(ResultatTransfert {
         chemin: chemin.to_string_lossy().to_string(),
@@ -266,6 +297,63 @@ pub fn importer_sauvegarde(
         contenu: sauvegarde.contenu,
         resume,
     })
+}
+
+/// Remise a neuf de la caisse : ventes, ventes annulees, sessions, archive
+/// des rapports Z et tous les compteurs partent ensemble, en une transaction.
+/// La programmation reste entiere : produits, rayons, comptes et reglages sont
+/// ce qu on garde quand on remet une caisse de demonstration a neuf.
+///
+/// Les compteurs ne tombent qu ici, et seulement avec l archive : grand total
+/// a zero devant des rapports Z conserves, ou archive vide derriere un
+/// compteur de remises a zero intact, ce sont deux etats dont les chiffres ne
+/// se recoupent plus. Aucune licence n est exigee : nettoyer apres des essais
+/// doit rester possible en version d essai.
+#[tauri::command]
+pub fn remettre_la_caisse_a_neuf(
+    depot: State<Depot>,
+    jetons: State<RegistreJetons>,
+    jeton: String,
+) -> Resultat<RemiseANeuf> {
+    jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    depot.executer(|connexion| {
+        let transaction = connexion.unchecked_transaction()?;
+
+        if sessions::ouverte(&transaction)?.is_some() {
+            return Err(ErreurApplication::Conflit(
+                "une session de caisse est ouverte : la fermer avant la remise a neuf"
+                    .to_string(),
+            ));
+        }
+
+        let presentes = transfert::resumer(&transaction)?;
+
+        transfert::effacer_historique(&transaction)?;
+        compteurs::purger(&transaction)?;
+        parametres::ecrire(&transaction, CLE_DERNIERE_SAUVEGARDE, "")?;
+
+        transaction.commit()?;
+
+        Ok(RemiseANeuf {
+            ventes: presentes.ventes,
+            sessions: presentes.sessions,
+            rapports_z: presentes.rapports_z,
+        })
+    })
+}
+
+/// Date lisible de la derniere sauvegarde emportant les ventes, ou une chaine
+/// vide si aucune n a jamais ete ecrite. L ecran en fait une phrase : ce n est
+/// pas au noyau de choisir laquelle.
+pub fn derniere_sauvegarde(connexion: &rusqlite::Connection) -> Resultat<String> {
+    let brut = parametres::lire_ou(connexion, CLE_DERNIERE_SAUVEGARDE, "")?;
+
+    if brut.trim().is_empty() {
+        return Ok(String::new());
+    }
+
+    Ok(horodatage::lisible(&brut))
 }
 
 fn portee(avec_donnees: bool) -> &'static str {

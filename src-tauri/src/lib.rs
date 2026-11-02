@@ -65,6 +65,7 @@ pub fn executer() {
             commandes::rapports::cloturer_rapport_z,
             commandes::rapports::exporter_ventes_et_vider,
             commandes::rapports::lister_rapports_z,
+            commandes::rapports::effacer_rapports_z,
             commandes::rapports::lister_ventes_annulees,
             commandes::reglages::recuperer_reglages,
             commandes::reglages::enregistrer_reglages,
@@ -97,7 +98,8 @@ pub fn executer() {
             commandes::licence::retirer_licence,
             commandes::transfert::recuperer_etat_transfert,
             commandes::transfert::exporter_sauvegarde,
-            commandes::transfert::importer_sauvegarde
+            commandes::transfert::importer_sauvegarde,
+            commandes::transfert::remettre_la_caisse_a_neuf
         ])
         .run(tauri::generate_context!())
         .expect("echec du demarrage de LCOS");

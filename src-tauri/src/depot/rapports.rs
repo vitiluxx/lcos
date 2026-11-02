@@ -87,3 +87,10 @@ pub fn lister(connexion: &Connection) -> Resultat<Vec<RapportArchive>> {
 
     Ok(rapports)
 }
+
+/// Efface l archive. Le compteur de remises a zero n est pas touche : la
+/// numerotation des rapports Z continue, et le trou dans les numeros est la
+/// seule chose qui dira qu une archive a ete effacee.
+pub fn purger(connexion: &Connection) -> Resultat<usize> {
+    Ok(connexion.execute("DELETE FROM rapport_z", [])?)
+}

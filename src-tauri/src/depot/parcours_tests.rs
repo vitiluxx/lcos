@@ -707,3 +707,143 @@ fn refuse_d_effacer_un_compte_encore_pointe_par_une_vente() {
 
     assert!(transfert::ecrire_parametrage(&transaction, &parametrage).is_err());
 }
+
+/// Archive factice : seuls le numero et le total comptent pour les parcours
+/// d effacement, le reste du rapport n est que du texte deja rendu.
+fn archive_factice(numero: i64, total_centimes: i64) -> crate::domaine::ticket::DonneesRapportZ {
+    crate::domaine::ticket::DonneesRapportZ {
+        numero,
+        nom_commerce: "Mon commerce".to_string(),
+        devise: "EUR".to_string(),
+        decimales: crate::domaine::monnaie::DECIMALES_DEFAUT,
+        genere_le: "02/11/2026 19:30".to_string(),
+        debut_le: String::new(),
+        fin_le: String::new(),
+        nombre_ventes: 1,
+        nombre_articles: 1,
+        total_centimes,
+        premier_ticket: numero,
+        dernier_ticket: numero,
+        par_caissier: Vec::new(),
+        par_rayon: Vec::new(),
+        ventes: Vec::new(),
+        grand_total_centimes: total_centimes,
+        grand_total_articles: 1,
+        grand_total_ventes: 1,
+        remises_a_zero: numero,
+    }
+}
+
+#[test]
+fn l_effacement_de_l_archive_laisse_les_compteurs_et_la_numerotation_debout() {
+    let connexion = base();
+
+    for numero in 1..=3 {
+        compteurs::incrementer(&connexion, compteurs::REMISE_A_ZERO, 1).unwrap();
+        compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 500).unwrap();
+        compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap();
+
+        rapports::archiver(&connexion, &archive_factice(numero, 500), "texte du rapport").unwrap();
+    }
+
+    assert_eq!(rapports::lister(&connexion).unwrap().len(), 3);
+    assert_eq!(rapports::purger(&connexion).unwrap(), 3);
+    assert!(rapports::lister(&connexion).unwrap().is_empty());
+
+    // Ce que l effacement ne doit jamais emporter : sans ces trois valeurs,
+    // plus rien ne dit que les periodes effacees ont existe.
+    assert_eq!(
+        compteurs::lire(&connexion, compteurs::GRAND_TOTAL_CENTIMES).unwrap(),
+        1500
+    );
+    assert_eq!(
+        compteurs::lire(&connexion, compteurs::NUMERO_TICKET).unwrap(),
+        3
+    );
+
+    // Le Z suivant porte le numero 4 : aucun numero n est reattribue, et le
+    // trou dans la suite est ce qui trahit l effacement.
+    let suivant = compteurs::incrementer(&connexion, compteurs::REMISE_A_ZERO, 1).unwrap();
+
+    assert_eq!(suivant, 4);
+
+    rapports::archiver(&connexion, &archive_factice(suivant, 500), "texte du rapport").unwrap();
+
+    let restantes = rapports::lister(&connexion).unwrap();
+
+    assert_eq!(restantes.len(), 1);
+    assert_eq!(restantes[0].numero, 4);
+}
+
+#[test]
+fn la_remise_a_neuf_vide_l_historique_et_les_compteurs_sans_toucher_la_programmation() {
+    let connexion = base();
+    let caissier = comptes::creer(&connexion, "Ali", ROLE_CAISSIER, &empreinte_factice()).unwrap();
+    let produit = produit_vendable(&connexion, Some("3017620422003"), 150);
+    let session = sessions::ouvrir(&connexion, caissier, 0).unwrap();
+    let numero = compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap();
+
+    ventes::enregistrer(
+        &connexion,
+        &ventes::VenteAEnregistrer {
+            numero_ticket: numero,
+            session,
+            caissier,
+            total_centimes: 150,
+            recu_centimes: 150,
+            rendu_centimes: 0,
+            nombre_articles: 1,
+        },
+        &[ventes::LigneAEnregistrer {
+            produit: Some(produit),
+            libelle: "Coca 33cl".to_string(),
+            code_barres: None,
+            rayon_libelle: "Boissons".to_string(),
+            prix_centimes: 150,
+            quantite: 1,
+            total_centimes: 150,
+        }],
+    )
+    .unwrap();
+
+    compteurs::incrementer(&connexion, compteurs::GRAND_TOTAL_CENTIMES, 150).unwrap();
+    compteurs::incrementer(&connexion, compteurs::REMISE_A_ZERO, 1).unwrap();
+    rapports::archiver(&connexion, &archive_factice(1, 150), "texte du rapport").unwrap();
+    sessions::fermer(&connexion, session).unwrap();
+
+    let transaction = connexion.unchecked_transaction().unwrap();
+
+    transfert::effacer_historique(&transaction).unwrap();
+    compteurs::purger(&transaction).unwrap();
+    transaction.commit().unwrap();
+
+    let apres = transfert::resumer(&connexion).unwrap();
+
+    assert_eq!(apres.ventes, 0);
+    assert_eq!(apres.lignes, 0);
+    assert_eq!(apres.sessions, 0);
+    assert_eq!(apres.rapports_z, 0);
+
+    // Les compteurs repartent a neuf ensemble : un grand total a zero devant
+    // une archive encore pleine ne se recouperait plus.
+    for cle in [
+        compteurs::GRAND_TOTAL_CENTIMES,
+        compteurs::GRAND_TOTAL_ARTICLES,
+        compteurs::GRAND_TOTAL_VENTES,
+        compteurs::NUMERO_TICKET,
+        compteurs::REMISE_A_ZERO,
+    ] {
+        assert_eq!(compteurs::lire(&connexion, cle).unwrap(), 0, "compteur {cle}");
+    }
+
+    // Le premier ticket d apres repart a 1.
+    assert_eq!(
+        compteurs::incrementer(&connexion, compteurs::NUMERO_TICKET, 1).unwrap(),
+        1
+    );
+
+    // La programmation, elle, est intacte.
+    assert_eq!(apres.produits, 1);
+    assert_eq!(apres.comptes, 1);
+    assert_eq!(apres.rayons, 1);
+}

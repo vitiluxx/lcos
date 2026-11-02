@@ -59,3 +59,13 @@ pub fn retirer(connexion: &Connection, cle: &str, pas: i64) -> Resultat<i64> {
 
     lire(connexion, cle)
 }
+
+/// Remise a neuf : grands totaux, numero de ticket et nombre de remises a
+/// zero repartent de zero. L absence de ligne vaut zero pour `lire` et
+/// `incrementer` recree la ligne, donc l effacement suffit.
+///
+/// A n appeler que pour une caisse remise a neuf, jamais pour une cloture :
+/// ces compteurs sont le seul recoupement du gerant sur ses rapports Z.
+pub fn purger(connexion: &Connection) -> Resultat<usize> {
+    Ok(connexion.execute("DELETE FROM compteur", [])?)
+}

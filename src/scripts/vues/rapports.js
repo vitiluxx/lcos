@@ -133,10 +133,26 @@
     });
   }
 
-  function afficherArchives(rapports) {
+  // L archive est la seule trace lisible d une periode close : l ecran dit
+  // donc, juste au-dessus du bouton qui l efface, si une copie existe ailleurs.
+  function afficherSauvegardeArchives(archives) {
+    const vide = !archives.rapports.length;
+
+    element("rapports_archives_sauvegarde").textContent = archives.derniere_sauvegarde
+      ? "Derniere sauvegarde avec les ventes : " + archives.derniere_sauvegarde + "."
+      : "Aucune sauvegarde avec les ventes n a jamais ete ecrite : l effacement serait sans retour.";
+
+    element("rapports_archives_confirmation").checked = false;
+    element("rapports_archives_confirmation").disabled = vide;
+    element("rapports_effacer_archives").disabled = true;
+  }
+
+  function afficherArchives(archives) {
     const corps = element("rapports_archives");
+    const rapports = archives.rapports;
 
     global.format.vider(corps);
+    afficherSauvegardeArchives(archives);
 
     if (!rapports.length) {
       corps.appendChild(global.format.ligneVide(5, "Aucun rapport Z edite."));
@@ -271,6 +287,41 @@
     }
   }
 
+  // Efface l archive seule. Les grands totaux, le compteur de remises a zero
+  // et le numero de ticket restent debout : le noyau les renvoie pour que
+  // l ecran les montre plutot que de promettre qu ils n ont pas bouge.
+  async function effacerArchives() {
+    const resultat = element("rapports_archives_resultat");
+
+    try {
+      const bilan = await global.pont.appeler("effacer_rapports_z", {
+        jeton: global.acces.exiger()
+      });
+
+      resultat.textContent =
+        bilan.effaces +
+        " rapport(s) Z efface(s). Intacts : grand total " +
+        global.format.monnaie(bilan.grand_total_centimes) +
+        ", " +
+        bilan.remises_a_zero +
+        " remise(s) a zero, dernier numero de ticket attribue " +
+        bilan.dernier_ticket +
+        ". Le prochain rapport Z portera le no " +
+        (bilan.remises_a_zero + 1) +
+        ".";
+      resultat.hidden = false;
+
+      global.notifier.succes(
+        bilan.effaces + " rapport(s) Z efface(s) de l historique."
+      );
+
+      await rafraichir();
+    } catch (incident) {
+      resultat.hidden = true;
+      global.notifier.incident(incident);
+    }
+  }
+
   async function rafraichir() {
     if (!global.acces.actif()) {
       appliquerVisibilite();
@@ -320,6 +371,12 @@
 
     element("rapports_export_confirmation").addEventListener("change", function (evenement) {
       element("rapports_exporter_vider").disabled = !evenement.target.checked;
+    });
+
+    element("rapports_effacer_archives").addEventListener("click", effacerArchives);
+
+    element("rapports_archives_confirmation").addEventListener("change", function (evenement) {
+      element("rapports_effacer_archives").disabled = !evenement.target.checked;
     });
 
     element("rapports_imprimer").addEventListener("click", function () {

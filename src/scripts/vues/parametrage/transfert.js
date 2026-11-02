@@ -130,6 +130,18 @@
       !element("transfert_confirmation").checked || !sousLicence();
   }
 
+  // La remise a neuf n est pas fermee pendant l essai : nettoyer une caisse
+  // apres des essais doit rester possible sans licence. Seule la sauvegarde
+  // qui l aurait protegee, elle, en demande une.
+  function appliquerRemiseANeuf(nouvel) {
+    element("transfert_neuf_sauvegarde").textContent = nouvel.derniere_sauvegarde
+      ? "Derniere sauvegarde avec les ventes : " + nouvel.derniere_sauvegarde + "."
+      : "Aucune sauvegarde avec les ventes n a jamais ete ecrite.";
+
+    element("transfert_neuf_confirmation").checked = false;
+    element("transfert_remettre_a_neuf").disabled = true;
+  }
+
   function sousLicence() {
     return !etat || etat.sous_licence;
   }
@@ -175,6 +187,7 @@
     remplirFichiers(nouvel.fichiers);
     appliquerLicence();
     appliquerConfirmation();
+    appliquerRemiseANeuf(nouvel);
   }
 
   async function rafraichir() {
@@ -274,6 +287,40 @@
     }
   }
 
+  // Remise a neuf : tout l historique et tous les compteurs partent ensemble,
+  // la programmation reste. Le noyau refuse tant qu une session de caisse est
+  // ouverte, l ecran n a donc pas a s en charger.
+  async function remettreANeuf() {
+    const resultat = element("transfert_neuf_resultat");
+
+    try {
+      const bilan = await global.pont.appeler("remettre_la_caisse_a_neuf", {
+        jeton: global.acces.exiger()
+      });
+
+      resultat.textContent =
+        "Efface : " +
+        bilan.ventes +
+        " vente(s), " +
+        bilan.sessions +
+        " session(s), " +
+        bilan.rapports_z +
+        " rapport(s) Z. Grands totaux, compteur de remises a zero et numero de ticket" +
+        " repartis de zero. Programmation conservee.";
+      resultat.hidden = false;
+
+      global.notifier.succes("Caisse remise a neuf. La programmation n a pas bouge.");
+
+      await rafraichir();
+      global.vueRapports.rafraichir();
+      global.application.rafraichirEtat();
+      global.vueCaisse.rafraichir();
+    } catch (incident) {
+      resultat.hidden = true;
+      global.notifier.incident(incident);
+    }
+  }
+
   function initialiser() {
     element("transfert_relire").addEventListener("click", rafraichir);
     element("transfert_relire_import").addEventListener("click", rafraichir);
@@ -282,6 +329,12 @@
     element("transfert_fichier").addEventListener("change", afficherFichierChoisi);
     element("transfert_confirmation").addEventListener("change", appliquerConfirmation);
     element("transfert_importer").addEventListener("click", importer);
+
+    element("transfert_remettre_a_neuf").addEventListener("click", remettreANeuf);
+
+    element("transfert_neuf_confirmation").addEventListener("change", function (evenement) {
+      element("transfert_remettre_a_neuf").disabled = !evenement.target.checked;
+    });
 
     element("transfert_exporter_parametrage").addEventListener("click", function () {
       exporter(false);

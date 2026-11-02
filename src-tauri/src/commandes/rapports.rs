@@ -33,6 +33,26 @@ pub struct RapportZ {
     pub cloture: bool,
 }
 
+/// Archive des rapports Z, et date de la derniere sauvegarde complete. Les
+/// deux voyagent ensemble parce que l ecran qui propose d effacer l archive
+/// doit dire dans la meme phrase si une copie existe : apres effacement des
+/// ventes, l archive est la seule trace lisible des periodes closes.
+#[derive(Serialize)]
+pub struct ArchivesZ {
+    pub rapports: Vec<rapports::RapportArchive>,
+    /// Vide quand aucune sauvegarde avec les ventes n a jamais ete ecrite.
+    pub derniere_sauvegarde: String,
+}
+
+/// Ce que l effacement de l archive a retire, et ce qu il a laisse debout.
+#[derive(Serialize)]
+pub struct EffacementArchives {
+    pub effaces: i64,
+    pub grand_total_centimes: i64,
+    pub remises_a_zero: i64,
+    pub dernier_ticket: i64,
+}
+
 /// Ce qui est parti sur le disque, et le rapport Z de la periode effacee.
 #[derive(Serialize)]
 pub struct ExportVentes {
@@ -162,10 +182,43 @@ pub fn lister_rapports_z(
     depot: State<Depot>,
     jetons: State<RegistreJetons>,
     jeton: String,
-) -> Resultat<Vec<rapports::RapportArchive>> {
+) -> Resultat<ArchivesZ> {
     jetons.exiger(&jeton, ROLE_GERANT)?;
 
-    depot.executer(rapports::lister)
+    depot.executer(|connexion| {
+        Ok(ArchivesZ {
+            rapports: rapports::lister(connexion)?,
+            derniere_sauvegarde: transfert::derniere_sauvegarde(connexion)?,
+        })
+    })
+}
+
+/// Efface l archive des rapports Z. Les grands totaux, le compteur de remises
+/// a zero et le numero de ticket ne sont pas touches : ils sont renvoyes pour
+/// que l ecran puisse le montrer plutot que l affirmer.
+///
+/// La numerotation des Z continue donc apres l effacement : aucun numero n est
+/// reattribue, et le trou dans la suite dit qu une archive a disparu. Remettre
+/// `remise_a_zero` a zero ici produirait un second Z no 1 dans une table ou le
+/// numero est seulement indexe, jamais unique.
+#[tauri::command]
+pub fn effacer_rapports_z(
+    depot: State<Depot>,
+    jetons: State<RegistreJetons>,
+    jeton: String,
+) -> Resultat<EffacementArchives> {
+    jetons.exiger(&jeton, ROLE_GERANT)?;
+
+    depot.executer(|connexion| {
+        let effaces = rapports::purger(connexion)? as i64;
+
+        Ok(EffacementArchives {
+            effaces,
+            grand_total_centimes: compteurs::lire(connexion, compteurs::GRAND_TOTAL_CENTIMES)?,
+            remises_a_zero: compteurs::lire(connexion, compteurs::REMISE_A_ZERO)?,
+            dernier_ticket: compteurs::lire(connexion, compteurs::NUMERO_TICKET)?,
+        })
+    })
 }
 
 /// Verrous communs a toute remise a zero, et numerotation du Z qui l archive.
