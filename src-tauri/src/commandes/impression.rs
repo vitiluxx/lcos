@@ -166,6 +166,36 @@ pub fn imprimer_ticket(depot: State<Depot>, texte: String) -> Resultat<String> {
     Ok(nom)
 }
 
+/// Ouvre le tiroir-caisse sans rien imprimer.
+///
+/// Le tiroir est cable sur l imprimante, jamais sur l ordinateur : il n a
+/// aucune identite que Windows puisse relever, et le releve du materiel ne le
+/// montrera pas. Seule l imprimante peut l ouvrir, par une impulsion.
+///
+/// Quand un ticket sort, l impulsion voyage deja dans son flux : cette
+/// commande sert aux encaissements sans ticket, pour que le tiroir s ouvre
+/// quand meme. Elle rend `false` sans rien faire lorsque le tiroir n est pas
+/// demande, qu aucune imprimante n est retenue, ou que le mode ne porte pas
+/// les octets bruts : un tiroir muet n arrete pas une vente.
+#[tauri::command]
+pub fn ouvrir_tiroir_caisse(depot: State<Depot>) -> Resultat<bool> {
+    let (nom, mode, options) = depot.executer(|connexion| {
+        Ok((
+            parametres::lire_ou(connexion, CLE_NOM, "")?,
+            parametres::lire_ou(connexion, CLE_MODE, MODE_NAVIGATEUR)?,
+            lire_options(connexion)?,
+        ))
+    })?;
+
+    if !options.tiroir || mode != MODE_ESCPOS || nom.trim().is_empty() {
+        return Ok(false);
+    }
+
+    brut::envoyer(&nom, escpos::impulsion_tiroir())?;
+
+    Ok(true)
+}
+
 /// Resultat d un essai d impression. Le spouleur accepte les octets sans rien
 /// savoir de ce qui est au bout du cable : `materiel` dit seulement si le port
 /// retenu peut porter un appareil, jamais qu un ticket est sorti.

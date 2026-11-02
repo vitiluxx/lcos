@@ -87,6 +87,7 @@ pub fn executer() {
             commandes::impression::detecter_imprimantes,
             commandes::impression::enregistrer_reglages_impression,
             commandes::impression::imprimer_ticket,
+            commandes::impression::ouvrir_tiroir_caisse,
             commandes::impression::tester_impression,
             commandes::administration::recuperer_etat_administrateur,
             commandes::administration::activer_lancement_administrateur,

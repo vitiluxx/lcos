@@ -951,6 +951,17 @@
       // main quelques secondes, le temps que le client lise sa monnaie.
       global.vueAfficheur.poserRendu(ticket.rendu_centimes);
 
+      // Le tiroir-caisse n a pas d electronique : il est cable sur
+      // l imprimante, qui l ouvre par une impulsion. Quand un ticket sort,
+      // cette impulsion voyage dans son flux ; sinon elle part seule, pour
+      // que le tiroir s ouvre a chaque encaissement et pas seulement quand du
+      // papier sort. Un tiroir muet n arrete jamais une vente.
+      if (!ticketSort(ticket)) {
+        global.pont.appeler("ouvrir_tiroir_caisse").catch(function (incident) {
+          console.error("ouverture du tiroir impossible", incident);
+        });
+      }
+
       if (ticket.impression_recu) {
         global.notifier.succes(
           "Ticket no " +
@@ -978,6 +989,13 @@
       encaissementEnCours = false;
       afficherTotaux();
     }
+  }
+
+  // Vrai quand du papier sort reellement. En ESC/POS, l impulsion qui ouvre
+  // le tiroir voyage dans le flux du ticket : c est a cette seule condition
+  // qu il est inutile de la renvoyer a part.
+  function ticketSort(ticket) {
+    return Boolean(ticket.impression_recu && ticket.ticket_actif);
   }
 
   // Impression des recus desactivee : aucune feuille, aucun panneau de ticket,

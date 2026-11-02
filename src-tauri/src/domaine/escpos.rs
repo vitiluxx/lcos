@@ -97,6 +97,14 @@ pub fn encoder(texte: &str, options: &Options) -> Vec<u8> {
     flux
 }
 
+/// Impulsion seule, pour ouvrir le tiroir quand aucun ticket ne sort. Le
+/// tiroir n a pas d electronique : il est cable sur l imprimante, qui porte le
+/// courant jusqu a la bobine du pene. Elle n a donc pas besoin d avancer du
+/// papier pour l ouvrir.
+pub fn impulsion_tiroir() -> &'static [u8] {
+    IMPULSION_TIROIR
+}
+
 /// Nom du commerce : centre par l imprimante, donc on retire le centrage par
 /// espaces fait pour l ecran, sinon la ligne part vers la droite.
 fn poser_entete(flux: &mut Vec<u8>, ligne: &[u8], options: &Options) {
