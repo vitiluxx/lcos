@@ -1,0 +1,183 @@
+/*
+ * Clavier visuel tactile. Pose en bas de l ecran, au-dessus du contenu, il ne
+ * couvre jamais l entete : la caissiere garde l heure, la session et le menu
+ * sous les yeux pendant qu elle saisit.
+ *
+ * La hauteur est une variable : le contenu s en sert pour ouvrir en bas une
+ * marge de defilement de la meme taille, sinon un champ place au ras du bas de
+ * page resterait sous les touches, impossible a voir en le remplissant.
+ */
+:root {
+  --hauteur_clavier: 268px;
+}
+
+.clavier {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: var(--espace_2) var(--espace_3) var(--espace_3);
+  border-top: 1px solid var(--couleur_bordure);
+  background: var(--couleur_fond);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.clavier__cadre {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.clavier__entete {
+  display: flex;
+  align-items: center;
+  gap: var(--espace_3);
+  margin-bottom: var(--espace_2);
+}
+
+/* Le champ en cours de saisie, nomme : deux champs voisins se ressemblent. */
+.clavier__cible {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--couleur_texte_faible);
+}
+
+.clavier__onglets {
+  display: flex;
+  gap: var(--espace_1);
+}
+
+.clavier__bascule {
+  padding: var(--espace_1) var(--espace_3);
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte_faible);
+  font-family: var(--police_systeme);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.clavier__bascule--actif {
+  border-color: var(--couleur_accent);
+  background: var(--couleur_accent_faible);
+  color: var(--couleur_accent);
+}
+
+/*
+ * La croix de fermeture : large, parce qu un doigt vise moins bien qu une
+ * souris, et seule touche du clavier qui ne porte pas de caractere.
+ */
+.clavier__fermer {
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte);
+  font-family: var(--police_systeme);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.clavier__fermer:hover {
+  border-color: var(--couleur_alerte);
+  color: var(--couleur_alerte);
+}
+
+.clavier__touches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace_2);
+}
+
+.clavier__rangee {
+  display: flex;
+  gap: var(--espace_2);
+}
+
+/*
+ * flex: 1 1 0 avec min-width: 0 : toutes les touches d une rangee font la
+ * meme largeur, quelle que soit la longueur de leur libelle, et aucune ne
+ * deborde de l ecran.
+ */
+.clavier__touche {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 46px;
+  border: 1px solid var(--couleur_bordure);
+  border-radius: var(--rayon_1);
+  background: var(--couleur_surface);
+  color: var(--couleur_texte);
+  font-family: var(--police_chiffre);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.clavier__touche:hover {
+  border-color: var(--couleur_accent);
+}
+
+/* Retour tactile : sans curseur ni souris, l appui doit se voir. */
+.clavier__touche:active {
+  background: var(--couleur_accent_faible);
+  border-color: var(--couleur_accent);
+}
+
+.clavier__touche--commande {
+  font-family: var(--police_systeme);
+  font-size: 13px;
+  color: var(--couleur_texte_faible);
+}
+
+.clavier__touche--large {
+  flex-grow: 2;
+}
+
+.clavier__touche--espace {
+  flex-grow: 5;
+}
+
+.clavier__touche--valider {
+  flex-grow: 2;
+  border-color: var(--couleur_accent);
+  background: var(--couleur_accent_faible);
+  color: var(--couleur_accent);
+  font-family: var(--police_systeme);
+  font-size: 13px;
+}
+
+.clavier__touche--maj_active {
+  border-color: var(--couleur_accent);
+  background: var(--couleur_accent_faible);
+  color: var(--couleur_accent);
+}
+
+/*
+ * Marge de defilement sous le contenu, ouverte seulement clavier deploye :
+ * elle ne deplace rien de ce qui est deja visible, elle autorise juste a
+ * descendre plus bas pour degager le champ de dessous les touches.
+ */
+body.clavier_ouvert .contenu {
+  padding-bottom: var(--hauteur_clavier);
+}
+
+/* Ecran bas : les touches se resserrent plutot que de manger tout l ecran. */
+@media (max-height: 700px) {
+  :root {
+    --hauteur_clavier: 236px;
+  }
+
+  .clavier__touche {
+    height: 40px;
+    font-size: 16px;
+  }
+}
