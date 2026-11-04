@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="styles/composants/tableau.css" />
     <link rel="stylesheet" href="styles/composants/panneau.css" />
     <link rel="stylesheet" href="styles/composants/notification.css" />
+    <link rel="stylesheet" href="styles/composants/clavier.css" />
     <link rel="stylesheet" href="styles/vues/caisse.css" />
     <link rel="stylesheet" href="styles/vues/session.css" />
     <link rel="stylesheet" href="styles/vues/licence.css" />
@@ -144,6 +145,7 @@
                 <input
                   class="paiement__montant"
                   id="caisse_prix"
+                  data-clavier="non"
                   type="text"
                   inputmode="decimal"
                   autocomplete="off"
@@ -162,6 +164,7 @@
                 <input
                   class="paiement__montant"
                   id="caisse_quantite"
+                  data-clavier="non"
                   type="text"
                   inputmode="numeric"
                   autocomplete="off"
@@ -175,6 +178,7 @@
                 <input
                   class="paiement__montant"
                   id="caisse_montant"
+                  data-clavier="non"
                   type="text"
                   inputmode="decimal"
                   autocomplete="off"
@@ -2029,6 +2033,32 @@
       </section>
     </main>
 
+    <!--
+      Clavier visuel tactile. Vide a l ouverture : les touches sont dessinees
+      par le composant, qui choisit la disposition selon le champ touche.
+    -->
+    <div class="clavier" id="clavier" hidden>
+      <div class="clavier__cadre">
+        <div class="clavier__entete">
+          <span class="clavier__cible" id="clavier_cible"></span>
+          <div class="clavier__onglets">
+            <button class="clavier__bascule" id="clavier_lettres" type="button">ABC</button>
+            <button class="clavier__bascule" id="clavier_chiffres" type="button">123</button>
+          </div>
+          <button
+            class="clavier__fermer"
+            id="clavier_fermer"
+            type="button"
+            aria-label="Fermer le clavier"
+            title="Fermer le clavier"
+          >
+            X
+          </button>
+        </div>
+        <div class="clavier__touches" id="clavier_touches"></div>
+      </div>
+    </div>
+
     <div class="notifications" id="zone_notifications" aria-live="polite"></div>
     <div class="zone_eclair" id="zone_eclair" aria-live="assertive"></div>
     <pre class="zone_impression" id="zone_impression"></pre>
@@ -2038,6 +2068,7 @@
     <script src="scripts/noyau/acces.js"></script>
     <script src="scripts/composants/notification.js"></script>
     <script src="scripts/composants/impression.js"></script>
+    <script src="scripts/composants/clavier.js"></script>
     <script src="scripts/peripheriques/scanner.js"></script>
     <script src="scripts/vues/diagnostic.js"></script>
     <script src="scripts/vues/imprimante.js"></script>

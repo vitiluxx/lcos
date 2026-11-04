@@ -145,6 +145,13 @@
       return;
     }
 
+    // Le clavier visuel simule la touche Entree pour valider un champ. Une
+    // douchette, elle, n emet que des evenements de confiance : sans ce
+    // garde-fou, chaque validation au doigt cloturerait un faux code-barres.
+    if (!evenement.isTrusted) {
+      return;
+    }
+
     if (cibleIgnoree(evenement)) {
       reinitialiser();
       return;

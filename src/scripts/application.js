@@ -62,6 +62,10 @@
       return;
     }
 
+    // Changer d ecran ferme le clavier : ses touches ne designeraient plus
+    // rien, et le champ qu il remplissait a disparu.
+    global.clavier.fermer();
+
     const precedente = VUES[vueCourante]();
 
     if (precedente && precedente.sortir) {
@@ -196,6 +200,8 @@
     }
 
     brancherMenu();
+
+    global.clavier.initialiser();
 
     global.vueLicence.initialiser();
     global.vueCaisse.initialiser();

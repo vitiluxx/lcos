@@ -53,6 +53,8 @@
       return;
     }
 
+    global.clavier.fermer();
+
     sectionCourante = nom;
 
     document.querySelectorAll("[data-reglage_section]").forEach(function (section) {

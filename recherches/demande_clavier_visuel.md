@@ -1,8 +1,8 @@
 # Demande — clavier visuel tactile dans LCOS
 
 **Demandé le** : 2026-11-03
-**État** : commencé, interrompu à la demande de l'utilisateur. Rien n'est fini,
-rien n'est compilé.
+**État** : **livré et mesuré** dans le setup `LCOS_1.9.9_x64-setup.exe`
+(2026-11-04). Plus rien à reprendre.
 
 ## La demande, telle qu'elle a été formulée
 
@@ -16,116 +16,131 @@ rien n'est compilé.
 > installes les ressources nécessaires pour lancer la compilation et avoir le
 > setup du logiciel.
 
-Deux travaux distincts, donc :
+## 1. Le clavier visuel — ce qui a été livré
 
-1. **Un clavier visuel intégré à LCOS**, pas celui de Windows.
-2. **Installer de quoi compiler** sur cette machine, puis produire le setup.
+Règles tenues :
 
-## 1. Le clavier visuel — cahier des charges
-
-| Règle | Détail |
-|---|---|
-| Ouverture | Au moment de saisir dans un champ (clic ou prise de focus) |
-| Fermeture | Clic n'importe où ailleurs dans l'interface, **ou** sur la croix `X` du clavier |
-| Ne ferme pas | Un appui sur le clavier lui-même, ni sur le champ en cours de saisie |
-| Intégré | Composant de LCOS, aucune dépendance, aucun clavier Windows appelé |
-
-Ajouts décidés en cours de route, à conserver :
-
-- La touche **Échap** ferme aussi le clavier (un vrai clavier reste branché sur
-  cette caisse).
-- Changer de vue ou d'onglet ferme le clavier.
-- Deux dispositions : **AZERTY** pour le texte, **pavé chiffres et symboles**
-  pour les codes et les montants. Le choix est automatique selon le champ
-  (`type="password"`, `inputmode="numeric"`, classe `champ__saisie--chiffre`),
-  avec deux onglets `ABC` / `123` pour forcer l'autre.
-- **Pas de touches accentuées** : le ticket thermique ne les rend pas.
-  `escpos::nettoyer()` remplace tout octet hors ASCII imprimable par `?`. Un
-  nom de commerce accentué sortirait donc abîmé sur le rouleau.
+- **Ouverture** : au clic sur un champ de saisie, ou sur l'étiquette
+  `<label for>` qui le commande.
+- **Fermeture** : clic n'importe où ailleurs, croix `X`, touche `Échap`,
+  changement de vue, changement de sous-onglet du paramétrage.
+- **Ne ferme pas** : un appui sur le clavier lui-même, ni sur le champ en cours
+  de saisie.
+- **Intégré** : composant de LCOS, aucune dépendance, aucun clavier Windows
+  appelé.
+- Deux dispositions : **AZERTY** pour le texte, **chiffres et symboles** pour
+  les codes et les montants. Le choix est automatique (`type="password"`,
+  `inputmode="numeric"` ou `decimal`, classe `champ__saisie--chiffre`), avec
+  deux onglets `ABC` / `123` pour forcer l'autre.
+- `Maj` est **verrouillable** : elle reste active jusqu'au second appui.
+- **Aucune touche accentuée** : `escpos::nettoyer()` remplace tout octet hors
+  ASCII imprimable par `?`, un nom de commerce accentué sortirait abîmé du
+  rouleau.
 - La croix est large : un doigt vise moins bien qu'une souris.
 
-## Pièges repérés avant de coder — à ne pas réapprendre
+Fichiers :
+
+- `src/styles/composants/clavier.css` — panneau fixé en bas, entête nommant le
+  champ, onglets, croix, rangées à largeur égale, retour visuel à l'appui,
+  variante écran bas, marge de défilement du contenu.
+- `src/scripts/composants/clavier.js` — le composant complet.
+- `src/index.html` — feuille liée, squelette du panneau avant les
+  notifications, script après les autres composants, et `data-clavier="non"`
+  sur `caisse_prix`, `caisse_quantite` et `caisse_montant`.
+- `src/scripts/peripheriques/scanner.js` — `if (!evenement.isTrusted) return;`
+- `src/scripts/application.js` — `global.clavier.initialiser()` au démarrage,
+  `fermer()` à chaque bascule de vue.
+- `src/scripts/vues/parametrage.js` — `fermer()` à chaque bascule de
+  sous-onglet.
+
+## Pièges repérés — à ne pas réapprendre
 
 **La douchette.** `scanner.js` écoute `keydown` sur tout le document et juge
-une frappe par sa cadence. Si le clavier visuel émettait de faux événements
-clavier, chaque appui compterait comme une touche de code-barres. Deux
-mesures :
+une frappe par sa cadence. Deux mesures, toutes deux en place :
 
-- le clavier écrit **directement dans la valeur du champ** et n'émet qu'un
-  événement `input`, que le scanner ne regarde pas ;
-- `scanner.js` doit ignorer les événements dont `isTrusted` est faux — une
-  vraie douchette n'en produit jamais. C'est le garde-fou qui reste à poser,
-  pour la touche `Entrée` du clavier visuel, qui doit bien être simulée.
+- les touches écrivent **directement dans la valeur du champ** et n'émettent
+  qu'un événement `input`, que le scanner ne regarde pas ;
+- `scanner.js` ignore les événements dont `isTrusted` est faux — une vraie
+  douchette n'en produit jamais. C'est ce qui permet à la touche `Entrée`, la
+  seule simulée, de valider un champ sans clôturer un faux code-barres.
 
-**Le focus.** Appuyer sur une touche ne doit pas sortir du champ. Il faut
-`preventDefault()` sur le `mousedown` du panneau — pas sur `pointerdown`, qui
-supprimerait le clic lui-même sur certains navigateurs.
+**Le focus.** `preventDefault()` sur le `mousedown` du panneau, et non sur
+`pointerdown`, qui supprimerait le clic lui-même sur certains moteurs.
 
-**La fermeture par clic ailleurs.** Fermer sur `mousedown` change la mise en
-page avant le clic : le bouton visé se déplace et le doigt le rate. Il faut
-fermer sur le `click`, en phase de **capture** au niveau du document : la cible
-du clic est déjà fixée, le bouton reçoit quand même son événement.
+**La fermeture par clic ailleurs.** Sur le `click` en phase de **capture** au
+niveau du document : fermer sur `mousedown` replie la page avant le clic, le
+bouton visé se déplace et le doigt le rate.
 
 **La place à l'écran.** Le défilement n'est pas sur `body` mais sur
-`main.contenu` (`overflow-y: auto`, `base.css`). La marge à ouvrir sous le
-contenu est donc `body.clavier_ouvert .contenu { padding-bottom: … }`, et le
-champ actif est ramené dans la vue par `scrollIntoView`.
+`main.contenu` : la marge est `body.clavier_ouvert .contenu { padding-bottom }`
+et le champ actif est ramené dans la vue par `scrollIntoView`.
 
-## Ce qui est déjà écrit
+**`maxlength` ne s'applique pas.** Le navigateur ne la fait respecter qu'aux
+vraies frappes : écrire `value` à la main la contourne. La limite est donc
+refaite dans le composant, sinon un champ de huit caractères en accepterait
+trente au doigt.
 
-| Fichier | État |
-|---|---|
-| `src/styles/composants/clavier.css` | **Écrit.** Panneau fixé en bas, entête avec le nom du champ, onglets `ABC`/`123`, croix, rangées de touches à largeur égale, retour visuel à l'appui, variante écran bas (`max-height: 700px`), marge de défilement du contenu |
+**`selectionStart` jette sur certains champs.** `type="number"` refuse de la
+lire : l'absence de curseur vaut alors écriture à la fin.
 
-## Ce qui reste à faire
+**Le `change`.** Il n'est émis qu'à la fermeture, et seulement si la valeur a
+bougé, comme le ferait un vrai clavier en quittant le champ. L'émettre à chaque
+touche relancerait à chaque caractère les vues qui relisent sur `change`.
 
-1. `src/scripts/composants/clavier.js` — le composant : dispositions, choix
-   automatique, insertion au curseur (`selectionStart` / `selectionEnd`),
-   retour arrière, effacer, espace, majuscule verrouillable, `Entrée`,
-   ouverture sur `focusin`, fermeture (clic capture, croix, Échap).
-2. `src/index.html` — le squelette du panneau avant la balise de scripts, la
-   feuille `styles/composants/clavier.css` dans le `<head>`, et le script.
-3. `src/scripts/peripheriques/scanner.js` — ignorer `isTrusted === false`.
-4. `src/scripts/application.js` et `src/scripts/vues/parametrage.js` — fermer
-   le clavier au changement de vue et d'onglet.
-5. Un attribut d'exclusion (`data-clavier="non"`) pour un champ qui ne doit
-   jamais l'ouvrir, si le besoin apparaît à l'usage.
+**Les étiquettes.** Un `<label for>` donne le focus à son champ sans être ce
+champ : sans le détour par `for`, cliquer l'étiquette fermait le clavier.
 
-## 2. Installer de quoi compiler, puis produire le setup
+## Recette passée sur l'exécutable 1.9.9
 
-Rien n'est installé sur cette caisse : ni `git` utilisable pour la
-construction, ni `cargo`, ni `rustup`, ni Node. C'est pourquoi aucune
-modification de cette session n'a jamais été compilée.
+Mesurée par le protocole de débogage de la webview, pas relue :
 
-Il faut donc, **sources montrées et accord donné avant chaque
-téléchargement**, conformément à la consigne de départ :
+- clic sur « Nom du commerce » → ouvert, entête `"Nom du commerce"`, **ABC**,
+  marge de défilement ouverte ;
+- `abc` → `"abc"` ; `Maj` puis `AB` → `"AB"` ; `Maj` relâchée puis `c` →
+  `"ABc"` ;
+- curseur placé en position 1 puis `z` → `"AzBc"`, curseur ressorti à 2 ;
+- `Retour`, `Espace`, `Effacer` → `"ab"`, `"ab f"`, `""` ;
+- onglet `123` puis `12,5` → bascule faite, champ à `"12,5"` ;
+- champ `maxlength="8"`, dix touches tapées → **huit** caractères ;
+- clic ailleurs, croix, `Échap`, changement d'onglet, changement de vue →
+  fermé dans les cinq cas ;
+- clic sur l'étiquette → ouvert sur son champ ;
+- clic sur « Code secret » (`type="password"`) → ouvert d'emblée en **123** ;
+- `Entrée` → reçue une fois par le champ, clavier fermé, **0 scan et 0 rejet**
+  côté douchette ;
+- clic sur « Somme reçue du client » → reste fermé (exclu) ; clic sur
+  « Chercher un article » → ouvert en ABC ;
+- `change` émis **une** fois après une saisie, et **pas** après une ouverture
+  sans frappe.
 
-| Ressource | Source officielle | Pourquoi |
-|---|---|---|
-| Rust (MSVC) | `https://rustup.rs` → `rustup-init.exe` | `cargo`, qui construit `src-tauri` |
-| Outils de compilation C++ | `https://visualstudio.microsoft.com/visual-cpp-build-tools/` | Le lieur `link.exe` et le SDK Windows, exigés par la cible `x86_64-pc-windows-msvc` |
-| Node.js LTS | `https://nodejs.org` | `@tauri-apps/cli`, qui produit l'installateur |
-| WebView2 | déjà présent | Windows 10 19045 le fournit |
+## Un choix assumé, à trancher à l'usage
 
-Ordre de construction, une fois en place :
+Le panneau **ne s'ouvre jamais sur une prise de focus**, seulement au clic. La
+vue caisse rend la main au champ code-barres après chaque vente : sur
+`focusin`, le clavier remonterait à chaque ticket.
+
+Conséquence : sur l'écran du verrou, le code du gérant est déjà focalisé mais
+il faut **toucher le champ une fois** pour faire venir le clavier. Si cette
+exception devient gênante, l'ouvrir pour ce seul champ se fait dans
+`pointerSaisie()` (`src/scripts/vues/parametrage.js`), pas en rétablissant
+l'ouverture sur `focusin`.
+
+## 2. De quoi compiler
+
+Sans objet sur le poste de développement : `cargo 1.99.1` et `node v24.20.0` y
+sont installés, et c'est là qu'ont été produits tous les setups.
+
+Sur la caisse P70L, rien n'est installé et rien n'a besoin de l'être : elle
+reçoit le setup, pas les sources. Si la compilation devait un jour s'y faire,
+il faudrait Rust MSVC (`https://rustup.rs`), les outils de compilation C++
+(`https://visualstudio.microsoft.com/visual-cpp-build-tools/`) et Node LTS
+(`https://nodejs.org`) — WebView2 y est déjà fourni par Windows 10.
+
+Ordre de construction, sur le poste de développement :
 
 ```
-cargo test --manifest-path src-tauri/Cargo.toml
-npx tauri build
+cargo test --lib --manifest-path src-tauri/Cargo.toml
+cargo tauri build
 ```
 
-Le setup sort dans `src-tauri/target/release/bundle/`.
-
-**À vérifier d'abord** : cette machine a-t-elle un accès réseau ? Le serveur
-MCP de la session a échoué sur un `ENOTFOUND api.anthropic.com`, ce qui laisse
-penser que non, ou qu'un filtrage est en place. Sans réseau, aucun de ces
-téléchargements n'aboutira et il faudra apporter les installateurs par clé USB.
-
-## Pour reprendre
-
-Relire ce fichier, puis le point 1 de « ce qui reste à faire ». La feuille de
-style donne déjà les noms de classes que le JS doit produire :
-`clavier__cadre`, `clavier__entete`, `clavier__cible`, `clavier__onglets`,
-`clavier__bascule`, `clavier__fermer`, `clavier__touches`, `clavier__rangee`,
-`clavier__touche` et ses variantes `--commande`, `--large`, `--espace`,
-`--valider`, `--maj_active`.
+Le setup sort dans `src-tauri/target/release/bundle/nsis/`.
