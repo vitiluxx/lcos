@@ -11,8 +11,31 @@ use tauri::Manager;
 
 const NOM_BASE: &str = "lcos.db";
 
+/// Etiquette de la fenetre, telle que `tauri.conf.json` la declare : c est par
+/// elle que le second lancement retrouve la fenetre a reveiller.
+const FENETRE_PRINCIPALE: &str = "principale";
+
 pub fn executer() {
     tauri::Builder::default()
+        /*
+         * Une seule fenetre de caisse par poste, et elle doit etre la premiere
+         * chose que le greffon installe : relancer LCOS depuis l icone ou le
+         * setup ouvrait une deuxieme instance sur la meme base. Deux fenetres
+         * tiennent deux paniers, deux sessions de caisse, et se disputent le
+         * port serie de l afficheur, qui s eteint quand on le martele.
+         *
+         * Le second lancement ne fait plus que reveiller la fenetre existante,
+         * puis se termine de lui-meme.
+         */
+        .plugin(tauri_plugin_single_instance::init(
+            |application, _arguments, _dossier| {
+                if let Some(fenetre) = application.get_webview_window(FENETRE_PRINCIPALE) {
+                    let _ = fenetre.unminimize();
+                    let _ = fenetre.show();
+                    let _ = fenetre.set_focus();
+                }
+            },
+        ))
         .setup(|application| {
             let dossier = application.path().app_data_dir()?;
             let socle = depot::Depot::ouvrir(&dossier.join(NOM_BASE))?;

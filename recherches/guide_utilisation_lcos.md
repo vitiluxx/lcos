@@ -1,4 +1,4 @@
-# Guide d utilisation LCOS 1.9.9
+# Guide d utilisation LCOS 1.10.0
 
 Guide ecrit sans accents : le meme texte s affiche correctement sous Windows 10,
 dans un editeur, dans une console et sur un ticket.
@@ -17,7 +17,7 @@ Convention de ce guide :
 ## 1. Trois ecrans, derriere une icone
 
 La barre d onglets a disparu de la page : la navigation tient dans une **icone a trois
-barres**, en haut a droite, juste a cote de `version 1.9.9`.
+barres**, en haut a droite, juste a cote de `version 1.10.0`.
 
 **Emplacement** : `LCOS --> entete en haut a droite --> icone a trois barres`
 
@@ -66,7 +66,7 @@ son code.
 Fichier d installation :
 
 ```
-C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.9.9_x64-setup.exe
+C:\projets_codes\lcos\src-tauri\target\release\bundle\nsis\LCOS_1.10.0_x64-setup.exe
 ```
 
 1. Copie ce fichier sur une cle USB.
@@ -184,7 +184,9 @@ Le compte gerant ne peut pas etre supprime. Il peut etre renomme et son code cha
 **Emplacement** : `LCOS --> Parametrage --> champ Code du gerant --> bouton Deverrouiller`
 
 - Pour refermer : `LCOS --> Parametrage --> bouton Verrouiller` (en haut a droite).
-- L acces se referme tout seul apres 15 minutes sans activite.
+- L acces se referme tout seul des que tu quittes le Parametrage pour la
+  Caisse ou la Session. Tant que tu restes dedans, il ne se referme jamais,
+  meme apres une longue pause.
 - Apres 5 codes faux, l acces est bloque 60 secondes.
 
 ---

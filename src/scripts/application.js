@@ -68,7 +68,10 @@
 
     const precedente = VUES[vueCourante]();
 
-    if (precedente && precedente.sortir) {
+    // Seul un vrai changement d ecran fait sortir la vue : cliquer l entree de
+    // menu de l ecran courant ne doit pas verrouiller le parametrage sous les
+    // doigts du gerant.
+    if (nom !== vueCourante && precedente && precedente.sortir) {
       precedente.sortir();
     }
 

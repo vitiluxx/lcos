@@ -142,7 +142,21 @@
     pointerSaisie();
   }
 
-  async function verrouiller() {
+  /*
+   * Quitter le parametrage le verrouille. Le jeton ne perime plus avec
+   * l horloge : il vit tant que l ecran est ouvert, et meurt quand on le
+   * quitte. Un caissier qui revient a la caisse ne doit pas retrouver le
+   * parametrage ouvert derriere lui.
+   */
+  function sortir() {
+    if (!global.acces.actif()) {
+      return;
+    }
+
+    verrouiller(true);
+  }
+
+  async function verrouiller(automatique) {
     const jeton = global.acces.jeton();
 
     global.acces.effacer();
@@ -157,7 +171,11 @@
 
     appliquerVisibilite();
     pointerSaisie();
-    global.notifier.neutre("Parametrage verrouille.");
+    global.notifier.neutre(
+      automatique
+        ? "Parametrage verrouille : ecran quitte."
+        : "Parametrage verrouille."
+    );
   }
 
   async function initialiserGerant() {
@@ -223,6 +241,7 @@
     initialiser: initialiser,
     rafraichir: rafraichir,
     entrer: entrer,
+    sortir: sortir,
     verrouiller: verrouiller,
     surScan: surScan,
     sectionCourante: function () {
